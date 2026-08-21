@@ -3,9 +3,9 @@ use soksak_contract_terminal::MirrorUnderTest;
 use soksak_sidecar_terminal_shitty::engine::{ColorSnap, GridCell, ModeSnap};
 use soksak_sidecar_terminal_shitty::Mirror;
 
-pub struct ProviderMirror(Mirror);
+pub struct SidecarMirror(Mirror);
 
-impl MirrorUnderTest for ProviderMirror {
+impl MirrorUnderTest for SidecarMirror {
     fn new(cols: u16, rows: u16) -> Self {
         Self(Mirror::new(cols, rows))
     }
