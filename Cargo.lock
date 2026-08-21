@@ -331,6 +331,7 @@ dependencies = [
 name = "soksak-sidecar-terminal-shitty"
 version = "0.0.1"
 dependencies = [
+ "serde_json",
  "soksak-contract-terminal",
  "soksak-kit-sidecar-terminal",
 ]
