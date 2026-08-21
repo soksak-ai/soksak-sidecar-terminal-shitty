@@ -16,3 +16,6 @@ SOKSAK_SHITTY_VT_SDK=/path/to/shitty/.build-vterm-arm/vterm-c cargo test
 
 No source checkout path is guessed. The manifest declares four targets: aarch64-apple-darwin, x86_64-apple-darwin,
 aarch64-unknown-linux-gnu and x86_64-unknown-linux-gnu.
+
+The SDK links libplt_headless.a; it contains no Cocoa or Wayland window backend.
+Linux builds link the xxhash backend selected by libstd at SDK build time.

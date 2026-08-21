@@ -11,7 +11,7 @@ fn main() {
         .map(PathBuf::from)
         .expect("SOKSAK_SHITTY_VT_SDK must declare the vterm-c SDK directory");
     let library = sdk.join("lib");
-    for archive in ["libshitty_vt.a", "libplt.a", "libstd.a"] {
+    for archive in ["libshitty_vt.a", "libplt_headless.a", "libstd.a"] {
         let path = library.join(archive);
         assert!(
             path.is_file(),
@@ -26,13 +26,14 @@ fn main() {
     );
     println!("cargo:rustc-link-search=native={}", library.display());
     println!("cargo:rustc-link-lib=static=shitty_vt");
-    println!("cargo:rustc-link-lib=static=plt");
+    println!("cargo:rustc-link-lib=static=plt_headless");
     println!("cargo:rustc-link-lib=static=std");
     if target_os == "macos" {
         println!("cargo:rustc-link-lib=dylib=c++");
     } else {
         println!("cargo:rustc-link-lib=dylib=stdc++");
         println!("cargo:rustc-link-lib=dylib=pthread");
+        println!("cargo:rustc-link-lib=dylib=xxhash");
     }
     println!("cargo:rerun-if-env-changed=SOKSAK_SHITTY_VT_SDK");
 }
