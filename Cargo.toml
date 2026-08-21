@@ -3,7 +3,7 @@ name = "soksak-sidecar-terminal-shitty"
 version = "0.0.1"
 edition = "2021"
 publish = false
-license = "MIT"
+license = "GPL-3.0-or-later"
 description = "Shitty terminal-state provider for the Soksak terminal recovery contract."
 build = "build.rs"
 
