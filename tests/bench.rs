@@ -7,7 +7,7 @@ mod common;
 #[test]
 #[ignore]
 fn bench() {
-    let report = soksak_contract_terminal::bench::run::<common::Unit>("shitty");
+    let report = soksak_contract_terminal::bench::run::<common::ProviderMirror>("shitty");
     println!("{}", report.to_json());
     if let Ok(directory) = std::env::var("SOKSAK_BENCH_OUT") {
         let directory = std::path::PathBuf::from(directory);
