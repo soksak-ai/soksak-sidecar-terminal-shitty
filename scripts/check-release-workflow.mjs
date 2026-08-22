@@ -19,6 +19,8 @@ requireText(`${ownerPath}/\${{ steps.archive.outputs.asset }}`, "artifact upload
 requireText(`working-directory: ${ownerPath}/.dependency/soksak-spec`, "validator build directory");
 requireText("./scripts/package-release.sh", "reusable archive command");
 requireText("vterm-c-sdk", "Shitty SDK build");
+requireText("libvulkan-dev", "Shitty Vulkan SDK requirement");
+requireText("CXX=clang++-20", "Shitty Linux C++26 compiler");
 for (const obsolete of ["release/source-dependencies.json", "release/dependencies.json"]) {
   if (fs.existsSync(path.join(ROOT, obsolete))) throw new Error(`${obsolete} is obsolete`);
 }

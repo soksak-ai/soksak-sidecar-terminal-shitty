@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y clang glslang-tools librsvg2-bin libxxhash-dev pkg-config python3 ragel
+          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libxxhash-dev pkg-config python3 ragel
       - name: Install macOS SDK requirements
         if: runner.os == 'macOS'
         run: brew install llvm ragel glslang spirv-cross librsvg pkgconf
@@ -55,7 +55,7 @@ jobs:
         working-directory: externals/shitty
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = macOS ]; then export CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++"; fi
+          if [ "${{ runner.os }}" = macOS ]; then export CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++"; else export CC=clang-20 CXX=clang++-20; fi
           ./build -B .build-vterm --target "${{ matrix.target }}" vterm-c-sdk
       - name: Stage sidecar
         env:
