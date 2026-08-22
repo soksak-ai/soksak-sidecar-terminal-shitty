@@ -1,4 +1,4 @@
-# soksak-sidecar-terminal-shitty 0.0.3
+# soksak-sidecar-terminal-shitty 0.0.4
 
 Shitty terminal-state provider for `soksak-spec-sidecar-terminal` 0.0.1. The repository contains
 only the Shitty engine adapter, provider identity, and conformance seat. Recovery lifecycle, PTY
