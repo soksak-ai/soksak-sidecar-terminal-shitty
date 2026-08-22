@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libwayland-dev libxkbcommon-dev libxxhash-dev pkg-config python3 ragel
+          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libwayland-dev libxkbcommon-dev libxxhash-dev pkg-config python3 ragel wayland-protocols
       - name: Install macOS SDK requirements
         if: runner.os == 'macOS'
         run: brew install llvm ragel glslang spirv-cross librsvg pkgconf

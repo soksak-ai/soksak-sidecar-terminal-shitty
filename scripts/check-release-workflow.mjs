@@ -22,6 +22,7 @@ requireText("vterm-c-sdk", "Shitty SDK build");
 requireText("libvulkan-dev", "Shitty Vulkan SDK requirement");
 requireText("libwayland-dev", "Shitty Wayland SDK requirement");
 requireText("libxkbcommon-dev", "Shitty keyboard SDK requirement");
+requireText("wayland-protocols", "Shitty Wayland protocol data requirement");
 requireText("CXX=clang++-20", "Shitty Linux C++26 compiler");
 for (const obsolete of ["release/source-dependencies.json", "release/dependencies.json"]) {
   if (fs.existsSync(path.join(ROOT, obsolete))) throw new Error(`${obsolete} is obsolete`);
