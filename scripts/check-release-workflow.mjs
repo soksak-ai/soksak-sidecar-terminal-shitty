@@ -10,7 +10,7 @@ const targets = JSON.parse(fs.readFileSync(path.join(ROOT, "release/targets.json
 const requireText = (value, label) => { if (!workflow.includes(value)) throw new Error(`release workflow is missing ${label}: ${value}`); };
 const cargo = fs.readFileSync(path.join(ROOT, "Cargo.toml"), "utf8");
 if (/\bpath\s*=\s*"\.\.\//.test(cargo)) throw new Error("Cargo dependencies must not require sibling checkouts");
-requireText("ref: 876e74628167f8e0ea6f2939a9ec6d13a300418f", "terminal sidecar kit commit");
+requireText("ref: 2b7d7ee5855a2dbef4507da44c347ad4fd74e552", "terminal sidecar kit commit");
 requireText("ref: cab0691a1a01fca7436ac29f6cc2850245788ea6", "terminal contract commit");
 requireText("ref: ef67d91f635524a667b8c78052358173d55bf019", "platform spec commit");
 requireText(`path: ${ownerPath}`, "owner checkout path");
@@ -24,6 +24,9 @@ requireText("libwayland-dev", "Shitty Wayland SDK requirement");
 requireText("libxkbcommon-dev", "Shitty keyboard SDK requirement");
 requireText("wayland-protocols", "Shitty Wayland protocol data requirement");
 requireText("CXX=clang++-20", "Shitty Linux C++26 compiler");
+requireText("if brew tap | grep -Fxq aws/tap; then brew untap aws/tap; fi", "unrelated Homebrew tap removal");
+requireText(`soksak-sidecar-terminal-shitty-$version-\${{ matrix.target }}`, "manifest-derived archive version");
+requireText('--tag "v$version"', "manifest-derived release tag");
 for (const obsolete of ["release/source-dependencies.json", "release/dependencies.json"]) {
   if (fs.existsSync(path.join(ROOT, obsolete))) throw new Error(`${obsolete} is obsolete`);
 }
@@ -34,5 +37,5 @@ requireText("release-template/publish-canonical-release.mjs", "canonical immutab
 requireText("SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}", "canonical publisher token");
 for (const duplicate of ["build-release.mjs", "release-contract.mjs", "validate-with-spec.mjs"]) if (fs.existsSync(path.join(ROOT, "scripts", duplicate))) throw new Error(`local spec copy is forbidden: scripts/${duplicate}`);
 if (fs.existsSync(path.join(ROOT, "validation/spec-validator.json"))) throw new Error("local spec pin copy is forbidden");
-if (workflow.includes("windows") || workflow.includes("pc-windows")) throw new Error("Shitty 0.0.4 release must not declare Windows");
+if (workflow.includes("windows") || workflow.includes("pc-windows")) throw new Error("Shitty release must not declare Windows");
 console.log("release workflow contract: passed");
