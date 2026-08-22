@@ -12,7 +12,7 @@ const cargo = fs.readFileSync(path.join(ROOT, "Cargo.toml"), "utf8");
 if (/\bpath\s*=\s*"\.\.\//.test(cargo)) throw new Error("Cargo dependencies must not require sibling checkouts");
 requireText("ref: 4af58a772a141b9e4d4258ae5f21a140aa162d82", "terminal sidecar kit commit");
 requireText("ref: cab0691a1a01fca7436ac29f6cc2850245788ea6", "terminal contract commit");
-requireText("ref: 8afc21b75bfbef7090410a69da9fd48796dfec62", "platform spec commit");
+requireText("ref: 50993e5287a29e0d0a2f0cac096fa5ef12d06ea4", "platform spec commit");
 requireText(`path: ${ownerPath}`, "owner checkout path");
 requireText(`working-directory: ${ownerPath}`, "owner working directory");
 requireText(`${ownerPath}/\${{ steps.archive.outputs.asset }}`, "artifact upload path");
@@ -20,6 +20,8 @@ requireText(`working-directory: ${ownerPath}/.dependency/soksak-spec`, "validato
 requireText("./scripts/package-release.sh", "reusable archive command");
 requireText("vterm-c-sdk", "Shitty SDK build");
 requireText("libvulkan-dev", "Shitty Vulkan SDK requirement");
+requireText("libwayland-dev", "Shitty Wayland SDK requirement");
+requireText("libxkbcommon-dev", "Shitty keyboard SDK requirement");
 requireText("CXX=clang++-20", "Shitty Linux C++26 compiler");
 for (const obsolete of ["release/source-dependencies.json", "release/dependencies.json"]) {
   if (fs.existsSync(path.join(ROOT, obsolete))) throw new Error(`${obsolete} is obsolete`);
@@ -27,6 +29,8 @@ for (const obsolete of ["release/source-dependencies.json", "release/dependencie
 for (const { target, runner } of targets) { requireText(`target: ${target}`, "release target"); requireText(`runner: ${runner}`, "release runner"); }
 requireText("release-template/sidecar/build-release.mjs", "canonical release builder");
 requireText("release-template/sidecar/validate-with-spec.mjs", "canonical release validator");
+requireText("release-template/publish-canonical-release.mjs", "canonical immutable publisher");
+requireText("SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}", "canonical publisher token");
 for (const duplicate of ["build-release.mjs", "release-contract.mjs", "validate-with-spec.mjs"]) if (fs.existsSync(path.join(ROOT, "scripts", duplicate))) throw new Error(`local spec copy is forbidden: scripts/${duplicate}`);
 if (fs.existsSync(path.join(ROOT, "validation/spec-validator.json"))) throw new Error("local spec pin copy is forbidden");
 if (workflow.includes("windows") || workflow.includes("pc-windows")) throw new Error("Shitty 0.0.1 release must not declare Windows");

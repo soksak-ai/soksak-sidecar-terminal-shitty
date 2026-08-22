@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libxxhash-dev pkg-config python3 ragel
+          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libwayland-dev libxkbcommon-dev libxxhash-dev pkg-config python3 ragel
       - name: Install macOS SDK requirements
         if: runner.os == 'macOS'
         run: brew install llvm ragel glslang spirv-cross librsvg pkgconf
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: soksak-ai/soksak-spec
-          ref: 8afc21b75bfbef7090410a69da9fd48796dfec62
+          ref: 50993e5287a29e0d0a2f0cac096fa5ef12d06ea4
           path: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/soksak-spec
       - name: Build the exact public validator without links
         working-directory: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/soksak-spec
@@ -114,11 +114,15 @@ jobs:
           private-key: ${{ secrets.SOKSAK_RELEASE_PRIVATE_KEY }}
           permission-administration: read
           permission-contents: write
+      - name: Collect the canonical public asset set
+        run: |
+          mkdir publish-assets
+          find dist -maxdepth 1 -type f -name '*.tar.gz' -exec cp {} publish-assets/ \;
+          cp dist-release/*.json publish-assets/
       - name: Publish immutable release
-        env: { GH_TOKEN: "${{ steps.release-token.outputs.token }}" }
+        env:
+          SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
         run: |
           test "$(gh api "repos/${{ github.repository }}/immutable-releases" --jq '.enabled and .enforced_by_owner')" = true
-          assets="$(find dist dist-release -type f \( -name '*.tar.gz' -o -name '*.sha256' -o -name '*.json' \) | sort)"
-          test "$(printf '%s\n' "$assets" | grep -c '\.tar\.gz$')" -eq 4
-          test "$(printf '%s\n' "$assets" | grep -c '\.tar\.gz\.sha256$')" -eq 4
-          gh release create v0.0.1 --repo "${{ github.repository }}" --target "${{ github.sha }}" --title v0.0.1 --generate-notes $assets
+          node .dependency/soksak-spec/packages/plugin-spec/release-template/publish-canonical-release.mjs --repository "${{ github.repository }}" --commit "${{ github.sha }}" --artifacts "$GITHUB_WORKSPACE/soksak-sidecars/soksak-sidecar-terminal-shitty/publish-assets" --manifest "$GITHUB_WORKSPACE/soksak-sidecars/soksak-sidecar-terminal-shitty/publish-assets/release.json"
