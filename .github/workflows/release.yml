@@ -39,9 +39,12 @@ jobs:
           repository: min-median-max/shitty
           ref: dd5c0d8c74f37a69a805a24b160472805a97c869
           path: externals/shitty
+      - id: rust-toolchain
+        shell: bash
+        run: echo "channel=$(sed -n 's/^channel = \"\(.*\)\"/\1/p' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
         with:
-          toolchain: "1.96.0"
+          toolchain: ${{ steps.rust-toolchain.outputs.channel }}
           targets: ${{ matrix.target }}
       - name: Install Linux SDK requirements
         if: runner.os == 'Linux'
