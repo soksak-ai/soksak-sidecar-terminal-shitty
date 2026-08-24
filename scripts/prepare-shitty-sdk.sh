@@ -60,9 +60,14 @@ else
 fi
 
 source_date_epoch=$(git -C "$source" show -s --format=%ct "$commit")
+compiler=$(command -v clang++)
+tool_root=$(dirname -- "$compiler")
+cc=$tool_root/clang
+archiver=$tool_root/llvm-ar
+[ -x "$cc" ] && [ -x "$compiler" ] && [ -x "$archiver" ] || { echo "declared LLVM tool closure is incomplete: $tool_root" >&2; exit 78; }
 for build in first second; do
   case "$build" in first) timezone=Pacific/Kiritimati ;; second) timezone=Pacific/Pago_Pago ;; esac
-  (cd "$stage" && SOURCE_DATE_EPOCH="$source_date_epoch" TZ="$timezone" CC=clang CXX=clang++ \
+  (cd "$stage" && SOURCE_DATE_EPOCH="$source_date_epoch" TZ="$timezone" CC="$cc" CXX="$compiler" AR="$archiver" \
     ./build -B ".build-vterm-$build" --target "$target" vterm-c-sdk)
 done
 first=$stage/.build-vterm-first/vterm-c

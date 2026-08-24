@@ -26,9 +26,16 @@ esac
 python_record=$(python3 -c 'import platform,sys;print(sys.version.split()[0]);print(platform.machine())' 2>/dev/null || true)
 python_version=$(printf '%s\n' "$python_record" | sed -n '1p')
 python_machine=$(printf '%s\n' "$python_record" | sed -n '2p')
-llvm_version=$(clang++ --version 2>/dev/null | sed -n '1p' | grep -Eo '[0-9]+[.][0-9]+[.][0-9]+' | sed -n '1p')
-llvm_ar_version=$(llvm-ar --version 2>/dev/null | sed -n '1p' | grep -Eo '[0-9]+[.][0-9]+[.][0-9]+' | sed -n '1p')
-compiler_target=$(clang++ -dumpmachine 2>/dev/null || true)
+compiler=$(command -v clang++ 2>/dev/null || true)
+llvm_version=
+llvm_ar_version=
+compiler_target=
+if [ -n "$compiler" ]; then
+  archiver=$(dirname -- "$compiler")/llvm-ar
+  llvm_version=$("$compiler" --version 2>/dev/null | sed -n '1p' | grep -Eo '[0-9]+[.][0-9]+[.][0-9]+' | sed -n '1p')
+  llvm_ar_version=$("$archiver" --version 2>/dev/null | sed -n '1p' | grep -Eo '[0-9]+[.][0-9]+[.][0-9]+' | sed -n '1p')
+  compiler_target=$("$compiler" -dumpmachine 2>/dev/null || true)
+fi
 ragel_version=$(ragel --version 2>/dev/null | sed -n '1s/.*version \([0-9][0-9]*\.[0-9][0-9]*\).*/\1.0/p')
 rust_expected=$(sed -n 's/^channel = "\([^"]*\)"$/\1/p' rust-toolchain.toml)
 rust_actual=$(rustc --version 2>/dev/null | awk '{print $2}' || true)
