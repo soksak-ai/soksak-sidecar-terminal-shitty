@@ -1,6 +1,15 @@
 name: release
 on:
   workflow_dispatch:
+    inputs:
+      spec_url:
+        description: Exact immutable soksak-spec package URL from the release train
+        required: true
+        type: string
+      spec_sha256:
+        description: SHA-256 of the exact soksak-spec package
+        required: true
+        type: string
 concurrency:
   group: release-${{ github.repository }}
   cancel-in-progress: false
@@ -14,57 +23,75 @@ jobs:
       matrix:
         include:
           - { target: aarch64-apple-darwin, runner: macos-15 }
-          - { target: aarch64-unknown-linux-gnu, runner: ubuntu-24.04-arm }
           - { target: x86_64-apple-darwin, runner: macos-15-intel }
+          - { target: aarch64-unknown-linux-gnu, runner: ubuntu-24.04-arm }
           - { target: x86_64-unknown-linux-gnu, runner: ubuntu-24.04 }
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
+        shell: bash
         working-directory: soksak-sidecars/soksak-sidecar-terminal-shitty
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { path: soksak-sidecars/soksak-sidecar-terminal-shitty }
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: min-median-max/shitty
-          ref: dd5c0d8c74f37a69a805a24b160472805a97c869
-          path: externals/shitty
+          path: soksak-sidecars/soksak-sidecar-terminal-shitty
+          persist-credentials: false
+      - name: Inject the exact spec validation tool
+        run: |
+          case "${{ inputs.spec_url }}" in
+            https://github.com/soksak-ai/soksak-spec/releases/download/v*/soksak-ai-plugin-spec-*.tgz) ;;
+            *) echo "spec_url is not an immutable soksak-spec release asset" >&2; exit 1 ;;
+          esac
+          digest="${{ inputs.spec_sha256 }}"
+          test "${#digest}" -eq 64
+          case "$digest" in *[!a-f0-9]*) echo "spec_sha256 is invalid" >&2; exit 1 ;; esac
+          mkdir -p .dependency/spec-package
+          curl -fsSL "${{ inputs.spec_url }}" -o .dependency/soksak-spec.tgz
+          actual="$(if command -v sha256sum >/dev/null 2>&1; then sha256sum .dependency/soksak-spec.tgz; else shasum -a 256 .dependency/soksak-spec.tgz; fi | awk '{print $1}')"
+          test "$actual" = "$digest"
+          tar -xzf .dependency/soksak-spec.tgz -C .dependency/spec-package --strip-components=1
+          test -z "$(find .dependency/spec-package -type l -print -quit)"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json
+      - id: dependency-tools
+        run: |
+          echo "python=$(jq -r '.dependencies[] | select(.id == "shitty-vt-sdk") | .tools.python' build-dependencies.json)" >> "$GITHUB_OUTPUT"
+          echo "llvm=$(jq -r '.dependencies[] | select(.id == "shitty-vt-sdk") | .tools.llvm' build-dependencies.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: ${{ steps.dependency-tools.outputs.python }}
+      - uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0
+        with:
+          version: ${{ steps.dependency-tools.outputs.llvm }}
+          env: true
+      - uses: Homebrew/actions/setup-homebrew@fd832223f9f99ebf0244dd20658680e5d4aca049
+      - run: brew install ragel
       - id: rust-toolchain
-        shell: bash
         run: echo "channel=$(sed -n 's/^channel = \"\(.*\)\"/\1/p' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
         with:
           toolchain: ${{ steps.rust-toolchain.outputs.channel }}
           targets: ${{ matrix.target }}
-      - name: Install Linux SDK requirements
-        if: runner.os == 'Linux'
+      - run: |
+          npm install --global --ignore-scripts .dependency/soksak-spec.tgz
+          soksak-validate --help >/dev/null
+      - id: identity
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y clang-20 glslang-tools librsvg2-bin libvulkan-dev libwayland-dev libxkbcommon-dev libxxhash-dev pkg-config python3 ragel wayland-protocols
-      - name: Install macOS SDK requirements
-        if: runner.os == 'macOS'
-        run: |
-          if brew tap | grep -Fxq aws/tap; then brew untap aws/tap; fi
-          brew install llvm ragel glslang spirv-cross librsvg pkgconf
-      - name: Build Shitty SDK
-        working-directory: externals/shitty
-        shell: bash
-        run: |
-          if [ "${{ runner.os }}" = macOS ]; then export CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++"; else export CC=clang-20 CXX=clang++-20; fi
-          ./build -B .build-vterm --target "${{ matrix.target }}" vterm-c-sdk
-      - name: Stage sidecar
-        env:
-          SOKSAK_SHITTY_VT_SDK: ${{ github.workspace }}/externals/shitty/.build-vterm/vterm-c
-        run: ./stage.sh dist "${{ matrix.target }}"
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          case "$version" in ''|*[!0-9.]*) echo "invalid version: $version" >&2; exit 1 ;; esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - run: |
+          make verify TARGET="${{ matrix.target }}" OUT=dist
+          make stage TARGET="${{ matrix.target }}" OUT=dist
       - id: archive
-        shell: bash
         run: |
-          version="$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
-          manifest_version="$(sed -n 's/.*\"version\": \"\([^\"]*\)\".*/\1/p' sidecar.json | head -1)"
-          test "$version" = "$manifest_version"
+          version="${{ steps.identity.outputs.version }}"
           out="soksak-sidecar-terminal-shitty-$version-${{ matrix.target }}.tar.gz"
-          ./scripts/package-release.sh dist "${{ matrix.target }}" "$out"
-          if command -v sha256sum >/dev/null 2>&1; then sha256sum "$out" | tee "$out.sha256"; else shasum -a 256 "$out" | tee "$out.sha256"; fi
+          mkdir -p package/dist
+          cp sidecar.json LICENSE LICENSE.GPL3 LICENSE.MIT package/
+          cp dist/soksak-sidecar-terminal-shitty package/dist/
+          node .dependency/spec-package/release-template/sidecar/pack-target.mjs --source package --target "${{ matrix.target }}" --out "$out"
           echo "asset=$out" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -82,12 +109,21 @@ jobs:
         working-directory: soksak-sidecars/soksak-sidecar-terminal-shitty
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with: { path: soksak-sidecars/soksak-sidecar-terminal-shitty }
-      - name: Install the immutable public spec package
+        with:
+          path: soksak-sidecars/soksak-sidecar-terminal-shitty
+          persist-credentials: false
+      - name: Inject the exact spec validation tool
         run: |
+          case "${{ inputs.spec_url }}" in
+            https://github.com/soksak-ai/soksak-spec/releases/download/v*/soksak-ai-plugin-spec-*.tgz) ;;
+            *) echo "spec_url is not an immutable soksak-spec release asset" >&2; exit 1 ;;
+          esac
+          digest="${{ inputs.spec_sha256 }}"
+          test "${#digest}" -eq 64
+          case "$digest" in *[!a-f0-9]*) echo "spec_sha256 is invalid" >&2; exit 1 ;; esac
           mkdir -p .dependency/spec-package
-          curl -fsSL https://github.com/soksak-ai/soksak-spec/releases/download/v0.0.27/soksak-ai-plugin-spec-0.0.27.tgz -o .dependency/soksak-spec.tgz
-          echo "a3991634079056d0066de9ffc1af1bac6d65ecf1eb1c72e3619f8fb136d4c513  .dependency/soksak-spec.tgz" | sha256sum -c -
+          curl -fsSL "${{ inputs.spec_url }}" -o .dependency/soksak-spec.tgz
+          test "$(sha256sum .dependency/soksak-spec.tgz | awk '{print $1}')" = "$digest"
           tar -xzf .dependency/soksak-spec.tgz -C .dependency/spec-package --strip-components=1
           test -z "$(find .dependency/spec-package -type l -print -quit)"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -99,7 +135,7 @@ jobs:
           path: soksak-sidecars/soksak-sidecar-terminal-shitty/dist
           merge-multiple: true
       - run: |
-          version="$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -1)"
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           node .dependency/spec-package/release-template/sidecar/build-release.mjs --commit "${{ github.sha }}" --tag "v$version" --artifacts dist --out dist-release
       - run: node .dependency/spec-package/release-template/sidecar/validate-with-spec.mjs --spec-package .dependency/spec-package --release-dir dist-release
       - id: release-token
@@ -109,8 +145,7 @@ jobs:
           private-key: ${{ secrets.SOKSAK_RELEASE_PRIVATE_KEY }}
           permission-administration: read
           permission-contents: write
-      - name: Collect the canonical public asset set
-        run: |
+      - run: |
           mkdir publish-assets
           find dist -maxdepth 1 -type f -name '*.tar.gz' -exec cp {} publish-assets/ \;
           cp dist-release/*.json publish-assets/

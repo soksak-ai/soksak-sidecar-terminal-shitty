@@ -22,4 +22,7 @@ soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-s
 serde_json = "=1.0.150"
 soksak-contract-terminal = { git = "https://github.com/soksak-ai/soksak-contract-terminal", rev = "cab0691a1a01fca7436ac29f6cc2850245788ea6" }
 
+[build-dependencies]
+serde_json = "=1.0.150"
+
 [workspace]
