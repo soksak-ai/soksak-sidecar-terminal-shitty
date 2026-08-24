@@ -10,8 +10,7 @@ const required = [
   "spec_url:", "spec_sha256:", "${{ inputs.spec_url }}", "${{ inputs.spec_sha256 }}",
   "node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json",
   "python-version: ${{ steps.dependency-tools.outputs.python }}",
-  "version: ${{ steps.dependency-tools.outputs.llvm }}",
-  "brew install ragel",
+  'formula="llvm@${llvm%%.*}"', 'echo "$tool_root" >> "$GITHUB_PATH"',
   'make verify TARGET="${{ matrix.target }}" OUT=dist',
   'make stage TARGET="${{ matrix.target }}" OUT=dist',
   "release-template/sidecar/pack-target.mjs",
@@ -24,8 +23,11 @@ for (const value of required) if (!workflow.includes(value)) throw new Error(`re
 for (const { target, runner } of targets) {
   if (!workflow.includes(`target: ${target}`) || !workflow.includes(`runner: ${runner}`)) throw new Error(`release matrix omits ${target}/${runner}`);
 }
-for (const bypass of ["repository: min-median-max/shitty", "./build -B", "SOKSAK_SHITTY_VT_SDK", "scripts/package-release.sh", "pnpm/action-setup", "repository: soksak-ai/soksak-spec"]) {
+for (const bypass of ["repository: min-median-max/shitty", "./build -B", "SOKSAK_SHITTY_VT_SDK", "scripts/package-release.sh", "pnpm/action-setup", "repository: soksak-ai/soksak-spec", "KyleMayes/install-llvm-action"]) {
   if (workflow.includes(bypass)) throw new Error(`release workflow bypasses owner commands through ${bypass}`);
+}
+if (workflow.indexOf('formula="llvm@${llvm%%.*}"') > workflow.indexOf("uses: actions/setup-python@")) {
+  throw new Error("release workflow replaces the declared Python after tool installation");
 }
 for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)) {
   if (!/^[^@\s]+@[a-f0-9]{40}$/.test(match[1])) throw new Error(`workflow action is not commit-pinned: ${match[1]}`);
