@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const workflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
 const targets = JSON.parse(fs.readFileSync("release/targets.json", "utf8"));
+const stage = fs.readFileSync("scripts/stage-built.sh", "utf8");
 const required = [
   "spec_url:", "spec_sha256:", "${{ inputs.spec_url }}", "${{ inputs.spec_sha256 }}",
   "node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json",
@@ -28,4 +29,5 @@ for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)) {
   if (!/^[^@\s]+@[a-f0-9]{40}$/.test(match[1])) throw new Error(`workflow action is not commit-pinned: ${match[1]}`);
 }
 if (/windows|pc-windows/i.test(workflow)) throw new Error("Shitty release must not declare Windows");
+if (!stage.includes("absolute candidate output")) throw new Error("stage-built does not permit isolated absolute output");
 console.log("Shitty release workflow contract: passed");
