@@ -30,4 +30,5 @@ for (const match of workflow.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)) {
 }
 if (/windows|pc-windows/i.test(workflow)) throw new Error("Shitty release must not declare Windows");
 if (!stage.includes("absolute candidate output")) throw new Error("stage-built does not permit isolated absolute output");
+if (!stage.includes("sidecar.json")) throw new Error("stage-built does not emit the sidecar manifest");
 console.log("Shitty release workflow contract: passed");
