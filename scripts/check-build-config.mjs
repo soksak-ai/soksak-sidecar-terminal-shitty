@@ -8,6 +8,7 @@ const makefile = read("Makefile");
 const workflow = read(".github/workflows/release.yml");
 const build = read("build.rs");
 const prepare = read("scripts/prepare-shitty-sdk.sh");
+const preflight = read("scripts/check-build-environment.sh");
 const keys = (value) => Object.keys(value).sort().join("\n");
 
 if (dependencyDocument.schema !== "soksak-build-dependencies-v1" || dependencyDocument.dependencies.length !== 1 ||
@@ -37,7 +38,8 @@ for (const target of ["preflight", "prepare", "build", "stage", "verify"]) {
   if (!new RegExp(`^${target}:`, "m").test(makefile)) throw new Error(`Makefile target is missing: ${target}`);
 }
 if (!prepare.includes("SOURCE_DATE_EPOCH") || !prepare.includes("git -C \"$source\" show -s --format=%ct") ||
-    !prepare.includes("vterm-c-sdk") || !prepare.includes("soksak-validate build-receipt-create")) {
+    !prepare.includes("vterm-c-sdk") || !prepare.includes("soksak-validate build-receipt-create") ||
+    !prepare.includes('AR="$archiver"') || !preflight.includes('archiver=$(dirname -- "$compiler")/llvm-ar')) {
   throw new Error("Shitty SDK preparation does not own reproducible source build and receipt creation");
 }
 if (build.includes("SOKSAK_SHITTY_VT_SDK") || !build.includes("SOKSAK_BUILD_DEPENDENCY_ROOT")) {
