@@ -58,15 +58,25 @@ jobs:
         run: |
           echo "python=$(jq -r '.dependencies[] | select(.id == "shitty-vt-sdk") | .tools.python' build-dependencies.json)" >> "$GITHUB_OUTPUT"
           echo "llvm=$(jq -r '.dependencies[] | select(.id == "shitty-vt-sdk") | .tools.llvm' build-dependencies.json)" >> "$GITHUB_OUTPUT"
+          echo "ragel=$(jq -r '.dependencies[] | select(.id == "shitty-vt-sdk") | .tools.ragel' build-dependencies.json)" >> "$GITHUB_OUTPUT"
+      - uses: Homebrew/actions/setup-homebrew@fd832223f9f99ebf0244dd20658680e5d4aca049
+      - name: Install the declared LLVM and Ragel
+        env:
+          EXPECTED_LLVM: ${{ steps.dependency-tools.outputs.llvm }}
+          EXPECTED_RAGEL: ${{ steps.dependency-tools.outputs.ragel }}
+        run: |
+          llvm=$EXPECTED_LLVM
+          formula="llvm@${llvm%%.*}"
+          brew install "$formula" ragel
+          tool_root="$(brew --prefix "$formula")/bin"
+          test "$("$tool_root/clang++" --version | sed -n '1s/.*version \([0-9][0-9.]*\).*/\1/p')" = "$EXPECTED_LLVM"
+          test "$("$tool_root/llvm-ar" --version | sed -n '1s/.*version \([0-9][0-9.]*\).*/\1/p')" = "$EXPECTED_LLVM"
+          actual_ragel=$(ragel -v | sed -n 's/.*version \([0-9][0-9.]*\).*/\1/p')
+          test "$actual_ragel.0" = "$EXPECTED_RAGEL" || test "$actual_ragel" = "$EXPECTED_RAGEL"
+          echo "$tool_root" >> "$GITHUB_PATH"
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: ${{ steps.dependency-tools.outputs.python }}
-      - uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0
-        with:
-          version: ${{ steps.dependency-tools.outputs.llvm }}
-          env: true
-      - uses: Homebrew/actions/setup-homebrew@fd832223f9f99ebf0244dd20658680e5d4aca049
-      - run: brew install ragel
       - id: rust-toolchain
         run: echo "channel=$(sed -n 's/^channel = \"\(.*\)\"/\1/p' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
