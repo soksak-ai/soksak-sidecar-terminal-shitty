@@ -9,7 +9,7 @@ require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
 
 preflight: require-target
-	@scripts/check-build-environment.sh '$(TARGET)'
+	@scripts/check-build-environment.sh '$(TARGET)' '$(BUILD_DEPENDENCY_ROOT)'
 	@soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target '$(TARGET)' >/dev/null
 
 prepare: preflight

@@ -1,8 +1,17 @@
 #!/bin/sh
 set -eu
 
-[ "$#" -eq 1 ] && [ -n "$1" ] || { echo 'usage: check-build-environment.sh <target>' >&2; exit 78; }
+[ "$#" -ge 1 ] && [ -n "$1" ] || { echo 'usage: check-build-environment.sh <target> [build-dependency-root]' >&2; exit 78; }
 target=$1
+build_root=${2:-}
+
+# The SDK toolchain builds the SDK. A receipt that verifies is an SDK already built by the declared
+# toolchain, so this host is asked only for what still has to run: the crate compiler and its runtime.
+sdk=required
+if [ -n "$build_root" ] && [ -f "$build_root/receipts/$target.json" ] && \
+   soksak-validate build-receipt "$build_root/receipts/$target.json" --dependencies build-dependencies.json --output-root "$build_root" >/dev/null 2>&1; then
+  sdk=reused
+fi
 resolution=$(soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target "$target") || exit 78
 tool() { printf '%s' "$resolution" | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).tools[process.argv[1]]))' "$1"; }
 python_expected=$(tool python)
@@ -43,16 +52,26 @@ rust_host=$(rustc -vV 2>/dev/null | sed -n 's/^host: //p' || true)
 node_actual_platform=$(node -p process.platform 2>/dev/null || true)
 node_actual_arch=$(node -p process.arch 2>/dev/null || true)
 
-if [ "$target" != "$host_target" ] || [ "$python_version" != "$python_expected" ] || [ "$python_machine" != "$python_arch" ] || \
-   [ "$llvm_version" != "$llvm_expected" ] || [ "$llvm_ar_version" != "$llvm_expected" ] || ! printf '%s\n' "$compiler_target" | grep -Eq "$compiler_pattern" || \
-   [ "$ragel_version" != "$ragel_expected" ] || [ "$rust_actual" != "$rust_expected" ] || [ "$rust_host" != "$target" ] || \
+sdk_mismatch=0
+if [ "$sdk" = required ]; then
+  if [ "$python_version" != "$python_expected" ] || [ "$python_machine" != "$python_arch" ] || \
+     [ "$llvm_version" != "$llvm_expected" ] || [ "$llvm_ar_version" != "$llvm_expected" ] || \
+     ! printf '%s\n' "$compiler_target" | grep -Eq "$compiler_pattern" || \
+     [ "$ragel_version" != "$ragel_expected" ]; then
+    sdk_mismatch=1
+  fi
+fi
+
+if [ "$target" != "$host_target" ] || [ "$sdk_mismatch" = 1 ] || \
+   [ "$rust_actual" != "$rust_expected" ] || [ "$rust_host" != "$target" ] || \
    [ "$node_actual_platform" != "$node_platform" ] || [ "$node_actual_arch" != "$node_arch" ]; then
-  printf 'TOOLCHAIN_MISMATCH: target=%s hostTarget=%s python=%s/%s llvm=%s ar=%s compiler=%s ragel=%s rust=%s/%s node=%s/%s; expected python=%s/%s llvm=%s ragel=%s rust=%s/%s node=%s/%s\n' \
+  printf 'TOOLCHAIN_MISMATCH: sdk=%s target=%s hostTarget=%s python=%s/%s llvm=%s ar=%s compiler=%s ragel=%s rust=%s/%s node=%s/%s; expected python=%s/%s llvm=%s ragel=%s rust=%s/%s node=%s/%s\n' \
+    "$sdk" \
     "$target" "$host_target" "${python_version:-missing}" "${python_machine:-unknown}" "${llvm_version:-missing}" "${llvm_ar_version:-missing}" "${compiler_target:-unknown}" \
     "${ragel_version:-missing}" "${rust_actual:-missing}" "${rust_host:-unknown}" "${node_actual_platform:-unknown}" "${node_actual_arch:-unknown}" \
     "$python_expected" "$python_arch" "$llvm_expected" "$ragel_expected" "$rust_expected" "$target" "$node_platform" "$node_arch" >&2
   exit 78
 fi
 
-printf 'BUILD_ENVIRONMENT_READY target=%s python=%s/%s llvm=%s compiler=%s ragel=%s rust=%s/%s node=%s/%s\n' \
-  "$target" "$python_version" "$python_machine" "$llvm_version" "$compiler_target" "$ragel_version" "$rust_actual" "$rust_host" "$node_actual_platform" "$node_actual_arch"
+printf 'BUILD_ENVIRONMENT_READY sdk=%s target=%s python=%s/%s llvm=%s compiler=%s ragel=%s rust=%s/%s node=%s/%s\n' \
+  "$sdk" "$target" "${python_version:-unused}" "${python_machine:-unused}" "${llvm_version:-unused}" "${compiler_target:-unused}" "${ragel_version:-unused}" "$rust_actual" "$rust_host" "$node_actual_platform" "$node_actual_arch"
