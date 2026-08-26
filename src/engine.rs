@@ -219,6 +219,8 @@ impl Engine {
             spacer: cell.wide_continuation != 0,
             wrapline: cell.wrapline != 0,
             zerowidth: chars.collect(),
+            // This engine does not track OSC 8; capabilities.hyperlinks stays false.
+            link: None,
         }
     }
 }
