@@ -13,7 +13,24 @@ if [ -f "$receipt" ]; then
   echo "SHITTY_SDK_REUSED target=$target"
   exit 0
 fi
-[ ! -e "$build_root/targets/$target" ] || { echo "unverified Shitty SDK output exists for $target" >&2; exit 79; }
+if [ -e "$build_root/targets/$target" ]; then
+  mkdir -p "$build_root/receipts" "$build_root/.transactions"
+  recovered=$build_root/.transactions/recover.$target.$$.json
+  trap 'rm -f -- "$recovered"' EXIT HUP INT TERM
+  soksak-validate build-receipt-create "$root/build-dependencies.json" --dependency shitty-vt-sdk \
+    --target "$target" --output-root "$build_root" --out "$recovered"
+  soksak-validate build-receipt "$recovered" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+  if [ -e "$receipt" ]; then
+    soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+    echo "SHITTY_SDK_REUSED target=$target"
+    exit 0
+  fi
+  mv "$recovered" "$receipt"
+  trap - EXIT HUP INT TERM
+  soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+  echo "SHITTY_SDK_RECOVERED target=$target"
+  exit 0
+fi
 
 mkdir -p "$build_root/sources" "$build_root/.transactions"
 transaction=$build_root/.transactions/prepare.$target.$$

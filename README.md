@@ -20,6 +20,9 @@ timezones, requires byte-identical output, creates the canonical tree receipt an
 Rust Sidecar from that receipt. `build.rs` accepts no raw SDK path. No source checkout path is
 guessed. The manifest declares four targets: aarch64-apple-darwin, x86_64-apple-darwin,
 aarch64-unknown-linux-gnu and x86_64-unknown-linux-gnu.
+If a process ends after committing the target tree but before committing its receipt, the next
+`make prepare` reconstructs and validates the canonical receipt from that exact tree. An incomplete
+tree still fails rather than being accepted or silently replaced.
 
 The SDK links libplt_headless.a; it contains no Cocoa or Wayland window backend.
 Linux builds link the xxhash backend selected by libstd at SDK build time.

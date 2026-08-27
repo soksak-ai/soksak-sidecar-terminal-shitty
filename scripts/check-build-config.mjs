@@ -39,7 +39,8 @@ for (const target of ["preflight", "prepare", "build", "stage", "verify"]) {
 }
 if (!prepare.includes("SOURCE_DATE_EPOCH") || !prepare.includes("git -C \"$source\" show -s --format=%ct") ||
     !prepare.includes("vterm-c-sdk") || !prepare.includes("soksak-validate build-receipt-create") ||
-    !prepare.includes('AR="$archiver"') || !preflight.includes('archiver=$(dirname -- "$compiler")/llvm-ar')) {
+    !prepare.includes("SHITTY_SDK_RECOVERED") || !prepare.includes('AR="$archiver"') ||
+    !preflight.includes('archiver=$(dirname -- "$compiler")/llvm-ar')) {
   throw new Error("Shitty SDK preparation does not own reproducible source build and receipt creation");
 }
 if (build.includes("SOKSAK_SHITTY_VT_SDK") || !build.includes("SOKSAK_BUILD_DEPENDENCY_ROOT")) {
