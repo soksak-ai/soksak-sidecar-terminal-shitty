@@ -46,3 +46,26 @@ test("prepare recovers a committed target whose receipt move was interrupted", (
   assert.equal(second.status, 0, second.stderr);
   assert.match(second.stdout, /SHITTY_SDK_REUSED/);
 });
+
+test("Make addresses the SDK cache by the build dependency document digest", (context) => {
+  const root = mkdtempSync(join(realpathSync(tmpdir()), "shitty-sdk-address-"));
+  context.after(() => rmSync(root, { recursive: true, force: true }));
+  copyFileSync(join(repository, "Makefile"), join(root, "Makefile"));
+  const manifest = join(root, "build-dependencies.json");
+  const cacheRoot = () => spawnSync("make", ["-s", "build-dependency-root"], {
+    cwd: root,
+    encoding: "utf8",
+    env: process.env,
+  });
+
+  writeFileSync(manifest, '{"commit":"one"}\n');
+  const first = cacheRoot();
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /^target\/build-dependencies\/shitty-vt-sdk\/[a-f0-9]{64}\n$/);
+
+  writeFileSync(manifest, '{"commit":"two"}\n');
+  const second = cacheRoot();
+  assert.equal(second.status, 0, second.stderr);
+  assert.match(second.stdout, /^target\/build-dependencies\/shitty-vt-sdk\/[a-f0-9]{64}\n$/);
+  assert.notEqual(second.stdout, first.stdout);
+});
