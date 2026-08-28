@@ -1,7 +1,7 @@
 use soksak_contract_terminal as contract;
 use soksak_contract_terminal::MirrorUnderTest;
 use soksak_sidecar_terminal_shitty::Mirror;
-use soksak_sidecar_terminal_shitty::engine::{ColorSnap, GridCell, ModeSnap};
+use soksak_sidecar_terminal_shitty::engine::{ColorSnap, GridCell, ModeSnap, TerminalCursorShape};
 
 pub struct SidecarMirror(Mirror);
 
@@ -23,6 +23,17 @@ impl MirrorUnderTest for SidecarMirror {
     }
     fn suppressed_replies(&self) -> u64 {
         self.0.suppressed_replies()
+    }
+    fn cursor_style(&self) -> contract::CursorStyle {
+        let style = self.0.cursor_style();
+        contract::CursorStyle {
+            shape: match style.shape {
+                TerminalCursorShape::Block => contract::CursorShape::Block,
+                TerminalCursorShape::Underline => contract::CursorShape::Underline,
+                TerminalCursorShape::Bar => contract::CursorShape::Bar,
+            },
+            blinking: style.blinking,
+        }
     }
 
     fn screen_state(&self) -> contract::ScreenState {

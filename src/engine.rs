@@ -3,7 +3,8 @@ use std::ptr::NonNull;
 
 use soksak_kit_sidecar_terminal::mirror::TerminalEngine;
 pub use soksak_kit_sidecar_terminal::mirror::{
-    TerminalCell as GridCell, TerminalColor as ColorSnap, TerminalModes as ModeSnap,
+    TerminalCell as GridCell, TerminalColor as ColorSnap, TerminalCursorAnimation,
+    TerminalCursorShape, TerminalCursorStyle, TerminalModes as ModeSnap,
 };
 
 const SUCCESS: i32 = 0;
@@ -12,6 +13,12 @@ const OUT_OF_SPACE: i32 = -2;
 const COLOR_DEFAULT: u8 = 0;
 const COLOR_PALETTE: u8 = 1;
 const COLOR_RGB: u8 = 2;
+
+const CURSOR_HIDDEN: u8 = 0;
+const CURSOR_BLOCK: u8 = 1;
+const CURSOR_HOLLOW_BLOCK: u8 = 2;
+const CURSOR_UNDERLINE: u8 = 3;
+const CURSOR_BAR: u8 = 4;
 
 const MODE_BRACKETED_PASTE: u32 = 1 << 0;
 const MODE_APPLICATION_CURSOR: u32 = 1 << 1;
@@ -51,10 +58,13 @@ struct FfiSnapshot {
     history_rows: u32,
     suppressed_replies: u32,
     modes: u32,
+    cursor_blink_interval_ms: u32,
     columns: u16,
     rows: u16,
     cursor_x: u16,
     cursor_y: u16,
+    cursor_style: u8,
+    cursor_blinking: u8,
 }
 
 #[repr(C)]
@@ -131,6 +141,24 @@ impl Engine {
     pub fn cursor(&self) -> (usize, usize) {
         let snapshot = self.snapshot();
         (snapshot.cursor_y as usize, snapshot.cursor_x as usize)
+    }
+    pub fn cursor_style(&self) -> TerminalCursorStyle {
+        let snapshot = self.snapshot();
+        let shape = match snapshot.cursor_style {
+            CURSOR_HIDDEN | CURSOR_BLOCK | CURSOR_HOLLOW_BLOCK => TerminalCursorShape::Block,
+            CURSOR_UNDERLINE => TerminalCursorShape::Underline,
+            CURSOR_BAR => TerminalCursorShape::Bar,
+            other => panic!("unknown Shitty cursor style: {other}"),
+        };
+        TerminalCursorStyle {
+            shape,
+            blinking: snapshot.cursor_blinking != 0,
+        }
+    }
+    pub fn cursor_animation(&self) -> TerminalCursorAnimation {
+        TerminalCursorAnimation {
+            interval_ms: self.snapshot().cursor_blink_interval_ms,
+        }
     }
     pub fn alt_active(&self) -> bool {
         self.snapshot().modes & MODE_ALTERNATE_SCREEN != 0
@@ -249,6 +277,12 @@ impl TerminalEngine for Engine {
     }
     fn cursor(&self) -> (usize, usize) {
         Engine::cursor(self)
+    }
+    fn cursor_style(&self) -> TerminalCursorStyle {
+        Engine::cursor_style(self)
+    }
+    fn cursor_animation(&self) -> TerminalCursorAnimation {
+        Engine::cursor_animation(self)
     }
     fn alt_active(&self) -> bool {
         Engine::alt_active(self)
