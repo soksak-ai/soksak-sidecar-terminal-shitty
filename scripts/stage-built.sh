@@ -8,17 +8,21 @@ repository=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 case "$out" in ''|/|.|*..*|"$repository"|"$repository"/*) echo 'stage output is unsafe or inside the source repository' >&2; exit 2 ;; esac
 binary=target/$target/release/soksak-sidecar-terminal-shitty
 [ -f "$binary" ] || { echo "release binary is missing: $binary" >&2; exit 1; }
-mkdir -p "$out"
+mkdir -p "$out/dist"
 [ ! -L "$out" ] || { echo 'stage output must not be a symbolic link' >&2; exit 2; }
-staged_binary=$out/soksak-sidecar-terminal-shitty
+[ ! -L "$out/dist" ] || { echo 'stage process directory must not be a symbolic link' >&2; exit 2; }
+staged_binary=$out/dist/soksak-sidecar-terminal-shitty
 staged_manifest=$out/sidecar.json
-next_binary=$out/.soksak-sidecar-terminal-shitty.next.$$
+staged_process_manifest=$out/dist/sidecar.json
+next_binary=$out/dist/.soksak-sidecar-terminal-shitty.next.$$
 next_manifest=$out/.sidecar.json.next.$$
-trap 'rm -f "$next_binary" "$next_manifest"' EXIT HUP INT TERM
+next_process_manifest=$out/dist/.sidecar.json.next.$$
+trap 'rm -f "$next_binary" "$next_manifest" "$next_process_manifest"' EXIT HUP INT TERM
 cp "$binary" "$next_binary"
 chmod +x "$next_binary"
 cp sidecar.json "$next_manifest"
-for path in "$staged_binary" "$staged_manifest"; do
+cp sidecar.json "$next_process_manifest"
+for path in "$staged_binary" "$staged_manifest" "$staged_process_manifest"; do
   [ ! -L "$path" ] || { echo "STAGED_STATE_INVALID: symbolic link: $path" >&2; exit 1; }
 done
 
@@ -35,11 +39,12 @@ if [ -f "$staged_manifest" ]; then
   current_version=$(printf '%s\n' "$current_identity" | sed -n '2p')
   [ "$current_id" = "$next_id" ] || { echo 'STAGED_STATE_INVALID: component identity changed' >&2; exit 1; }
   if cmp -s "$next_manifest" "$staged_manifest"; then
-    if [ -f "$staged_binary" ] && cmp -s "$next_binary" "$staged_binary"; then
+    [ ! -e "$staged_binary" ] || cmp -s "$next_binary" "$staged_binary" || { echo "STAGED_BUILD_NOT_DETERMINISTIC: $next_id@$next_version" >&2; exit 1; }
+    [ ! -e "$staged_process_manifest" ] || cmp -s "$next_process_manifest" "$staged_process_manifest" || { echo "STAGED_STATE_INVALID: process manifest differs: $staged_process_manifest" >&2; exit 1; }
+    if [ -f "$staged_binary" ] && [ -f "$staged_process_manifest" ]; then
       echo "SHITTY_STAGED_UNCHANGED target=$target output=$staged_binary"
       exit 0
     fi
-    [ ! -e "$staged_binary" ] || { echo "STAGED_BUILD_NOT_DETERMINISTIC: $next_id@$next_version" >&2; exit 1; }
   else
     [ "$current_version" != "$next_version" ] || { echo "STAGED_MANIFEST_CONFLICT: $next_id@$next_version" >&2; exit 1; }
   fi
@@ -49,10 +54,14 @@ elif [ -e "$staged_manifest" ]; then
 elif [ -e "$staged_binary" ] && ! cmp -s "$next_binary" "$staged_binary"; then
   echo "STAGED_STATE_INVALID: binary has no matching manifest: $staged_binary" >&2
   exit 1
+elif [ -e "$staged_process_manifest" ] && ! cmp -s "$next_process_manifest" "$staged_process_manifest"; then
+  echo "STAGED_STATE_INVALID: process manifest has no matching root manifest: $staged_process_manifest" >&2
+  exit 1
 fi
 
-# Binary first and manifest second. If interrupted, the old manifest still authorizes replacement;
-# on an initial stage, an equal binary without a manifest is completed on the next run.
+# Root manifest last. If interrupted, the old root manifest still authorizes replacement; an
+# initial partial stage is completed when its binary and process manifest equal the new inputs.
 mv "$next_binary" "$staged_binary"
+mv "$next_process_manifest" "$staged_process_manifest"
 mv "$next_manifest" "$staged_manifest"
 echo "SHITTY_STAGED target=$target output=$staged_binary"
