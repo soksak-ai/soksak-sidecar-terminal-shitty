@@ -2,6 +2,8 @@
 import fs from "node:fs";
 
 const workflow = fs.readFileSync(".github/workflows/release.yml", "utf8");
+const manifest = JSON.parse(fs.readFileSync("sidecar.json", "utf8"));
+if (manifest.processRole !== "sidecar-terminal-shitty") throw new Error("Sidecar manifest must declare its project-independent processRole");
 const targets = JSON.parse(fs.readFileSync("release/targets.json", "utf8"));
 const stage = fs.readFileSync("scripts/stage-built.sh", "utf8");
 const makefile = fs.readFileSync("Makefile", "utf8");
