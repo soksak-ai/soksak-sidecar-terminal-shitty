@@ -3,7 +3,7 @@
 Shitty terminal-state provider for `soksak-spec-sidecar-terminal` 0.0.2. The repository contains
 only the Shitty engine adapter, provider identity, and conformance seat. Recovery lifecycle, PTY
 observation, alt-screen preservation and restore serialization are provided by
-`soksak-kit-sidecar-terminal` 0.0.15.
+`soksak-kit-sidecar-terminal` 0.0.21.
 
 The build dependency is declared once in `build-dependencies.json`. That manifest names the
 source repository and pins one exact commit, the Python, LLVM and Ragel versions, and the SDK
@@ -39,6 +39,11 @@ tree.
 Cursor shape, DECSCUSR blink state, and the provider animation interval come from the Shitty
 snapshot ABI. The adapter does not parse terminal input to reconstruct them. DECTCEM remains the
 separate visibility mode.
+
+The maintained Vterm fork owns OSC 4/10/11/12 state and exposes exact override-presence flags and
+a 256-entry palette mask through its C snapshot ABI. The Rust adapter maps that snapshot to
+`TerminalThemeOverrides`; it does not parse OSC or compare effective colors with defaults. Reset
+clears the matching flag or mask bit so the common renderer reveals the current host base theme.
 
 `make stage OUT=<directory>` writes the canonical runtime tree: root `sidecar.json`,
 `dist/soksak-sidecar-terminal-shitty`, and the process-local `dist/sidecar.json`. That directory is
