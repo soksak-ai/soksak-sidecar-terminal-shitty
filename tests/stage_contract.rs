@@ -18,9 +18,16 @@ fn stage_consumes_the_make_owned_target_artifact() {
 #[test]
 fn the_sdk_toolchain_is_demanded_only_when_the_sdk_has_to_be_built() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let check = fs::read_to_string(root.join("scripts/check-build-environment.sh")).expect("read environment check");
-    assert!(check.contains("soksak-validate build-receipt "), "the check does not consult the receipt");
-    assert!(check.contains("SDK_REUSED") || check.contains("sdk=reused"), "the check does not report which toolchain it required");
+    let check = fs::read_to_string(root.join("scripts/check-build-environment.sh"))
+        .expect("read environment check");
+    assert!(
+        check.contains("soksak-validate build-receipt "),
+        "the check does not consult the receipt"
+    );
+    assert!(
+        check.contains("SDK_REUSED") || check.contains("sdk=reused"),
+        "the check does not report which toolchain it required"
+    );
 
     let makefile = fs::read_to_string(root.join("Makefile")).expect("read Makefile");
     let preflight = makefile
