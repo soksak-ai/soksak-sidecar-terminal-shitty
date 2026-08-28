@@ -13,6 +13,8 @@ tree output each target produces.
 make lock TARGET=aarch64-apple-darwin
 make build TARGET=aarch64-apple-darwin
 make verify TARGET=aarch64-apple-darwin
+make stage TARGET=aarch64-apple-darwin STAGE=dist
+make attest TARGET=aarch64-apple-darwin OUT=/absolute/shitty-release
 ```
 
 `make lock` is the only owner operation that projects changed Cargo declarations into

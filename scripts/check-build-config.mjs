@@ -46,7 +46,7 @@ if (!prepare.includes("SOURCE_DATE_EPOCH") || !prepare.includes("git -C \"$sourc
 if (build.includes("SOKSAK_SHITTY_VT_SDK") || !build.includes("SOKSAK_BUILD_DEPENDENCY_ROOT")) {
   throw new Error("build.rs retains an ambient SDK path instead of the verified build root");
 }
-if (workflow.includes("repository: min-median-max/shitty") || !workflow.includes('make stage TARGET="${{ matrix.target }}" OUT=dist')) {
+if (workflow.includes("repository: min-median-max/shitty") || !workflow.includes('make stage TARGET="${{ matrix.target }}" STAGE=dist')) {
   throw new Error("release workflow bypasses the declarative SDK or Make");
 }
 
