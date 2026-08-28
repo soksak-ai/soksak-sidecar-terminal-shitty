@@ -31,7 +31,7 @@ stage: build
 	@scripts/stage-built.sh '$(OUT)' '$(TARGET)'
 
 verify: stage
-	@node --test scripts/prepare-shitty-sdk.test.mjs
+	@node --test scripts/*.test.mjs
 	@node scripts/check-build-config.mjs
 	@node scripts/check-release-workflow.mjs
 	@soksak-validate build-receipt '$(BUILD_DEPENDENCY_ROOT)/receipts/$(TARGET).json' --dependencies build-dependencies.json --output-root '$(BUILD_DEPENDENCY_ROOT)'
