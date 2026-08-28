@@ -8,13 +8,17 @@ const makefile = fs.readFileSync("Makefile", "utf8");
 const gate = fs.readFileSync("scripts/gate.sh", "utf8");
 if (!/^lock: preflight$/m.test(makefile) || !makefile.includes("cargo metadata --format-version 1")) throw new Error("Makefile must own Cargo lock regeneration");
 if (!fs.readFileSync("README.md", "utf8").includes("make lock TARGET=")) throw new Error("README must document the owner lock target");
+for (const target of ["require-tooling", "require-out", "release", "attest"]) if (!new RegExp(`^${target}:`, "m").test(makefile)) throw new Error(`Makefile target is missing: ${target}`);
+if (!/^STAGE \?= dist$/m.test(makefile) || /^OUT \?= dist$/m.test(makefile)) throw new Error("Makefile must separate STAGE from release OUT");
+for (const value of ["command -v soksak-sdk", "SDK_VERSION", "soksak-sdk pack-target", "soksak-sdk package", "soksak-sdk attest"]) if (!makefile.includes(value)) throw new Error(`Makefile release boundary is missing: ${value}`);
+if (!fs.readFileSync("README.md", "utf8").includes("make attest TARGET=") || !fs.readFileSync("README.md", "utf8").includes("OUT=/absolute/")) throw new Error("README must document owner attestation");
 const required = [
   "spec_url:", "spec_sha256:", "${{ inputs.spec_url }}", "${{ inputs.spec_sha256 }}",
   "node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json",
   "python-version: ${{ steps.dependency-tools.outputs.python }}",
   'formula="llvm@${llvm%%.*}"', 'echo "$tool_root" >> "$GITHUB_PATH"',
   'make verify TARGET="${{ matrix.target }}" OUT=dist',
-  'make stage TARGET="${{ matrix.target }}" OUT=dist',
+  'make stage TARGET="${{ matrix.target }}" STAGE=dist',
   "release-template/sidecar/pack-target.mjs",
   "release-template/sidecar/build-release.mjs",
   "release-template/sidecar/validate-with-spec.mjs",
