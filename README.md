@@ -33,3 +33,7 @@ tree.
 Cursor shape, DECSCUSR blink state, and the provider animation interval come from the Shitty
 snapshot ABI. The adapter does not parse terminal input to reconstruct them. DECTCEM remains the
 separate visibility mode.
+
+`make stage OUT=<directory>` writes the canonical runtime tree: root `sidecar.json`,
+`dist/soksak-sidecar-terminal-shitty`, and the process-local `dist/sidecar.json`. That directory is
+the direct `soksak-sdk pack-target --source` input.
