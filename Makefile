@@ -4,7 +4,7 @@ BUILD_DEPENDENCY_DIGEST := $(shell node -e 'const {createHash}=require("node:cry
 BUILD_DEPENDENCY_ROOT := target/build-dependencies/shitty-vt-sdk/$(BUILD_DEPENDENCY_DIGEST)
 OUT ?= dist
 
-.PHONY: require-target require-build-dependency-digest build-dependency-root preflight prepare build stage verify benchmark
+.PHONY: require-target require-build-dependency-digest build-dependency-root preflight lock prepare build stage verify benchmark
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -19,6 +19,9 @@ build-dependency-root: require-build-dependency-digest
 preflight: require-target require-build-dependency-digest
 	@scripts/check-build-environment.sh '$(TARGET)' '$(BUILD_DEPENDENCY_ROOT)'
 	@soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target '$(TARGET)' >/dev/null
+
+lock: preflight
+	@cargo metadata --format-version 1 > /dev/null
 
 prepare: preflight
 	@scripts/prepare-shitty-sdk.sh '$(TARGET)' '$(BUILD_DEPENDENCY_ROOT)'

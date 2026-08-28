@@ -10,9 +10,13 @@ source repository and pins one exact commit, the Python, LLVM and Ragel versions
 tree output each target produces.
 
 ```sh
+make lock TARGET=aarch64-apple-darwin
 make build TARGET=aarch64-apple-darwin
 make verify TARGET=aarch64-apple-darwin
 ```
+
+`make lock` is the only owner operation that projects changed Cargo declarations into
+`Cargo.lock`. Normal build and verification remain `--locked`.
 
 Make addresses repository-owned SDK state by the SHA-256 of `build-dependencies.json`, resolves the
 manifest, checks out the exact fork commit,
