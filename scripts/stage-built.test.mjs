@@ -39,8 +39,10 @@ test("stage replaces a previous patch version and remains idempotent", (context)
   writeFileSync(join(root, "sidecar.json"), manifest("0.0.2"));
   const replaced = run();
   assert.equal(replaced.status, 0, replaced.stderr);
-  assert.equal(readFileSync(join(root, out, "soksak-sidecar-terminal-shitty"), "utf8"), "changed-without-version\n");
-  assert.equal(JSON.parse(readFileSync(join(root, out, "sidecar.json"), "utf8")).version, "0.0.2");
+  assert.equal(readFileSync(join(root, out, "dist", "soksak-sidecar-terminal-shitty"), "utf8"), "changed-without-version\n");
+  const rootManifest = readFileSync(join(root, out, "sidecar.json"), "utf8");
+  assert.equal(JSON.parse(rootManifest).version, "0.0.2");
+  assert.equal(readFileSync(join(root, out, "dist", "sidecar.json"), "utf8"), rootManifest);
 
   const repeated = run();
   assert.equal(repeated.status, 0, repeated.stderr);
