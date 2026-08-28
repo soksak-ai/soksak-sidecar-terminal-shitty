@@ -1,14 +1,22 @@
 SHELL := /bin/sh
 
-BUILD_DEPENDENCY_ROOT := target/build-dependencies/shitty-vt-sdk
+BUILD_DEPENDENCY_DIGEST := $(shell node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync("build-dependencies.json")).digest("hex"))')
+BUILD_DEPENDENCY_ROOT := target/build-dependencies/shitty-vt-sdk/$(BUILD_DEPENDENCY_DIGEST)
 OUT ?= dist
 
-.PHONY: require-target preflight prepare build stage verify benchmark
+.PHONY: require-target require-build-dependency-digest build-dependency-root preflight prepare build stage verify benchmark
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
 
-preflight: require-target
+require-build-dependency-digest:
+	@case '$(BUILD_DEPENDENCY_DIGEST)' in ''|*[!0-9a-f]*) echo 'build dependency digest is invalid' >&2; exit 2 ;; esac
+	@test "$$(printf '%s' '$(BUILD_DEPENDENCY_DIGEST)' | wc -c | tr -d ' ')" = 64 || { echo 'build dependency digest is invalid' >&2; exit 2; }
+
+build-dependency-root: require-build-dependency-digest
+	@printf '%s\n' '$(BUILD_DEPENDENCY_ROOT)'
+
+preflight: require-target require-build-dependency-digest
 	@scripts/check-build-environment.sh '$(TARGET)' '$(BUILD_DEPENDENCY_ROOT)'
 	@soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target '$(TARGET)' >/dev/null
 
