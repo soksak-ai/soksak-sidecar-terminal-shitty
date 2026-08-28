@@ -4,7 +4,8 @@ use std::ptr::NonNull;
 use soksak_kit_sidecar_terminal::mirror::TerminalEngine;
 pub use soksak_kit_sidecar_terminal::mirror::{
     TerminalCell as GridCell, TerminalColor as ColorSnap, TerminalCursorAnimation,
-    TerminalCursorShape, TerminalCursorStyle, TerminalModes as ModeSnap,
+    TerminalCursorShape, TerminalCursorStyle, TerminalModes as ModeSnap, TerminalRgb,
+    TerminalThemeOverrides,
 };
 
 const SUCCESS: i32 = 0;
@@ -79,12 +80,29 @@ struct FfiCell {
     line_attribute: u8,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct FfiThemeOverrides {
+    foreground: FfiColor,
+    background: FfiColor,
+    cursor: FfiColor,
+    palette: [FfiColor; 256],
+    palette_override_mask: [u64; 4],
+    foreground_overridden: u8,
+    background_overridden: u8,
+    cursor_overridden: u8,
+}
+
 unsafe extern "C" {
     fn soksak_shitty_terminal_new(cols: u16, rows: u16, terminal: *mut *mut c_void) -> i32;
     fn soksak_shitty_terminal_free(terminal: *mut c_void);
     fn soksak_shitty_terminal_feed(terminal: *mut c_void, data: *const u8, len: usize) -> i32;
     fn soksak_shitty_terminal_resize(terminal: *mut c_void, cols: u16, rows: u16) -> i32;
     fn soksak_shitty_terminal_snapshot(terminal: *const c_void, snapshot: *mut FfiSnapshot) -> i32;
+    fn soksak_shitty_terminal_theme_overrides(
+        terminal: *const c_void,
+        overrides: *mut FfiThemeOverrides,
+    ) -> i32;
     fn soksak_shitty_terminal_cell(
         terminal: *const c_void,
         logical_row: i32,
@@ -159,6 +177,44 @@ impl Engine {
         TerminalCursorAnimation {
             interval_ms: self.snapshot().cursor_blink_interval_ms,
         }
+    }
+    pub fn theme_overrides(&self) -> TerminalThemeOverrides {
+        let empty = FfiColor::default();
+        let mut value = FfiThemeOverrides {
+            foreground: empty,
+            background: empty,
+            cursor: empty,
+            palette: [empty; 256],
+            palette_override_mask: [0; 4],
+            foreground_overridden: 0,
+            background_overridden: 0,
+            cursor_overridden: 0,
+        };
+        let result = unsafe {
+            soksak_shitty_terminal_theme_overrides(self.terminal.as_ptr(), &mut value)
+        };
+        assert_eq!(result, SUCCESS, "Shitty theme override snapshot failed: {result}");
+        let rgb = |color: FfiColor| TerminalRgb {
+            r: color.red_or_index,
+            g: color.green,
+            b: color.blue,
+        };
+        let mut overrides = TerminalThemeOverrides::default();
+        if value.foreground_overridden != 0 {
+            overrides.foreground = Some(rgb(value.foreground));
+        }
+        if value.background_overridden != 0 {
+            overrides.background = Some(rgb(value.background));
+        }
+        if value.cursor_overridden != 0 {
+            overrides.cursor = Some(rgb(value.cursor));
+        }
+        for (index, slot) in overrides.ansi.iter_mut().enumerate() {
+            if value.palette_override_mask[index >> 6] & (1u64 << (index & 63)) != 0 {
+                *slot = Some(rgb(value.palette[index]));
+            }
+        }
+        overrides
     }
     pub fn alt_active(&self) -> bool {
         self.snapshot().modes & MODE_ALTERNATE_SCREEN != 0
@@ -283,6 +339,9 @@ impl TerminalEngine for Engine {
     }
     fn cursor_animation(&self) -> TerminalCursorAnimation {
         Engine::cursor_animation(self)
+    }
+    fn theme_overrides(&self) -> TerminalThemeOverrides {
+        Engine::theme_overrides(self)
     }
     fn alt_active(&self) -> bool {
         Engine::alt_active(self)
