@@ -6,6 +6,8 @@ const targets = JSON.parse(fs.readFileSync("release/targets.json", "utf8"));
 const stage = fs.readFileSync("scripts/stage-built.sh", "utf8");
 const makefile = fs.readFileSync("Makefile", "utf8");
 const gate = fs.readFileSync("scripts/gate.sh", "utf8");
+if (!/^lock: preflight$/m.test(makefile) || !makefile.includes("cargo metadata --format-version 1")) throw new Error("Makefile must own Cargo lock regeneration");
+if (!fs.readFileSync("README.md", "utf8").includes("make lock TARGET=")) throw new Error("README must document the owner lock target");
 const required = [
   "spec_url:", "spec_sha256:", "${{ inputs.spec_url }}", "${{ inputs.spec_sha256 }}",
   "node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json",
