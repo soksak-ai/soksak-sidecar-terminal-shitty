@@ -1,6 +1,7 @@
 {
   "id": "soksak-sidecar-terminal-shitty",
-  "version": "0.0.21",
+  "version": "0.0.22",
+  "processRole": "sidecar-terminal-shitty",
   "interface": [
     {
       "id": "soksak-spec-sidecar-terminal",
