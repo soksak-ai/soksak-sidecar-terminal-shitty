@@ -15,8 +15,8 @@ const keys = (value) => Object.keys(value).sort().join("\n");
 if (dependency?.commit !== "dbc42af98907fadd5b057d2922b890b2725c016c") {
   throw new Error("Shitty SDK must be pinned to the live mouse encoder revision");
 }
-if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "1863f33176ac40517439c4eb7b749e49d2710ee4"')) {
-  throw new Error("terminal Kit must be pinned to the pointer-aware revision");
+if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "c89ddd642ae63122e48081bc25e38700094aab02"')) {
+  throw new Error("terminal Kit must be pinned to the focus-presentation revision");
 }
 
 if (dependencyDocument.schema !== "soksak-build-dependencies-v1" || dependencyDocument.dependencies.length !== 1 ||
