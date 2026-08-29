@@ -12,6 +12,14 @@ pub use soksak_kit_sidecar_terminal::mirror::{
 const SUCCESS: i32 = 0;
 const OUT_OF_SPACE: i32 = -2;
 
+const POINTER_PRESS: i32 = 0;
+const POINTER_RELEASE: i32 = 1;
+const POINTER_MOTION: i32 = 2;
+
+const MOUSE_MODIFIER_SHIFT: u32 = 1;
+const MOUSE_MODIFIER_ALT: u32 = 2;
+const MOUSE_MODIFIER_CONTROL: u32 = 4;
+
 const COLOR_DEFAULT: u8 = 0;
 const COLOR_PALETTE: u8 = 1;
 const COLOR_RGB: u8 = 2;
@@ -103,6 +111,17 @@ unsafe extern "C" {
     fn soksak_shitty_terminal_theme_overrides(
         terminal: *const c_void,
         overrides: *mut FfiThemeOverrides,
+    ) -> i32;
+    fn soksak_shitty_terminal_pointer(
+        terminal: *const c_void,
+        column: u16,
+        row: u16,
+        event: i32,
+        button: i32,
+        modifiers: u32,
+        output: *mut u8,
+        capacity: usize,
+        required: *mut usize,
     ) -> i32;
     fn soksak_shitty_terminal_cell(
         terminal: *const c_void,
@@ -252,6 +271,70 @@ impl Engine {
             .collect()
     }
 
+    pub fn pointer_input(&mut self, input: EnginePointerInput) -> Result<Vec<u8>, String> {
+        let event = match input.phase {
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Down => POINTER_PRESS,
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Up => POINTER_RELEASE,
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Move => POINTER_MOTION,
+        };
+        let button = match input.button {
+            soksak_kit_sidecar_terminal::mirror::PointerButton::None => 0,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Left => 1,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Middle => 2,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Right => 3,
+        };
+        let mut modifiers = 0u32;
+        if input.modifiers.shift {
+            modifiers |= MOUSE_MODIFIER_SHIFT;
+        }
+        if input.modifiers.alt {
+            modifiers |= MOUSE_MODIFIER_ALT;
+        }
+        if input.modifiers.control {
+            modifiers |= MOUSE_MODIFIER_CONTROL;
+        }
+
+        let mut required = 0usize;
+        let first = unsafe {
+            soksak_shitty_terminal_pointer(
+                self.terminal.as_ptr(),
+                input.col,
+                input.row,
+                event,
+                button,
+                modifiers,
+                std::ptr::null_mut(),
+                0,
+                &mut required,
+            )
+        };
+        if first != SUCCESS && first != OUT_OF_SPACE {
+            return Err(format!("Shitty mouse encoder failed: {first}"));
+        }
+        if required == 0 {
+            return Ok(Vec::new());
+        }
+        let mut output = vec![0u8; required];
+        let result = unsafe {
+            soksak_shitty_terminal_pointer(
+                self.terminal.as_ptr(),
+                input.col,
+                input.row,
+                event,
+                button,
+                modifiers,
+                output.as_mut_ptr(),
+                output.len(),
+                &mut required,
+            )
+        };
+        if result != SUCCESS {
+            return Err(format!("Shitty mouse encoder retry failed: {result}"));
+        }
+        output.truncate(required);
+        Ok(output)
+    }
+
     fn cell(&self, line: i32, column: u16) -> GridCell {
         let mut cell = FfiCell::default();
         let mut required = 0;
@@ -384,8 +467,8 @@ impl TerminalEngine for Engine {
     fn wheel_input(&mut self, _input: EngineWheelInput) -> Result<Vec<u8>, String> {
         Err("Shitty wheel input is not implemented".into())
     }
-    fn pointer_input(&mut self, _input: EnginePointerInput) -> Result<Vec<u8>, String> {
-        Err("Shitty pointer input is not implemented".into())
+    fn pointer_input(&mut self, input: EnginePointerInput) -> Result<Vec<u8>, String> {
+        Engine::pointer_input(self, input)
     }
 }
 
