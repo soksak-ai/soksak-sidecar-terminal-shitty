@@ -147,15 +147,37 @@ fn stale_wheel_routes_are_refused_instead_of_reinterpreted() {
 }
 
 #[test]
-#[ignore = "RED: the public terminal-mode contract has no DEC 9/1001 tracking variant"]
 fn red_x10_and_highlight_modes_can_generate_a_mouse_report_route() {
-    for mode in [9, 1001] {
-        let mut engine = Engine::new(80, 24);
-        engine.feed(format!("\x1b[?{mode}h").as_bytes());
-        let modes = TerminalEngine::modes(&engine);
-        assert!(
-            modes.mouse_click || modes.mouse_drag || modes.mouse_motion,
-            "DEC {mode} is live in the engine but absent from the public route-generation modes",
-        );
-    }
+    let mut engine = Engine::new(80, 24);
+    engine.feed(b"\x1b[?9h");
+    let x10 = TerminalEngine::modes(&engine);
+    assert!(x10.mouse_x10);
+    assert!(!x10.mouse_click && !x10.mouse_highlight && !x10.mouse_drag && !x10.mouse_motion);
+    let mut x10_wheel = wheel(0, -1, EngineWheelRoute::MouseReport);
+    x10_wheel.modifiers = SelectionModifiers {
+        shift: true,
+        alt: true,
+        control: true,
+        meta: false,
+    };
+    assert_eq!(
+        TerminalEngine::wheel_input(&mut engine, x10_wheel).unwrap(),
+        [0x1b, b'[', b'M', 96, 34, 35],
+    );
+
+    engine.feed(b"\x1b[?9l\x1b[?1001h");
+    let highlight = TerminalEngine::modes(&engine);
+    assert!(highlight.mouse_highlight);
+    assert!(!highlight.mouse_x10 && !highlight.mouse_click && !highlight.mouse_drag && !highlight.mouse_motion);
+    let mut highlight_wheel = wheel(0, -1, EngineWheelRoute::MouseReport);
+    highlight_wheel.modifiers = SelectionModifiers {
+        shift: true,
+        alt: true,
+        control: true,
+        meta: false,
+    };
+    assert_eq!(
+        TerminalEngine::wheel_input(&mut engine, highlight_wheel).unwrap(),
+        [0x1b, b'[', b'M', 124, 34, 35],
+    );
 }
