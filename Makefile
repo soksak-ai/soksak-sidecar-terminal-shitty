@@ -3,7 +3,7 @@ SHELL := /bin/sh
 BUILD_DEPENDENCY_DIGEST := $(shell node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync("build-dependencies.json")).digest("hex"))')
 BUILD_DEPENDENCY_ROOT := target/build-dependencies/shitty-vt-sdk/$(BUILD_DEPENDENCY_DIGEST)
 STAGE ?= dist
-SDK_VERSION := 0.0.14
+SDK_VERSION := 0.0.18
 
 .PHONY: require-target require-build-dependency-digest build-dependency-root preflight lock prepare build stage verify benchmark require-tooling require-out release attest
 
