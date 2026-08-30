@@ -10,6 +10,7 @@ const build = read("build.rs");
 const prepare = read("scripts/prepare-shitty-sdk.sh");
 const preflight = read("scripts/check-build-environment.sh");
 const cargo = read("Cargo.toml");
+const cargoConfig = read(".cargo/config.toml");
 const engine = read("src/engine.rs");
 const keys = (value) => Object.keys(value).sort().join("\n");
 
@@ -35,6 +36,15 @@ for (const copiedEncodingRule of ["MODE_SGR_MOUSE", "MODE_UTF8_MOUSE", "1005", "
 }
 if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "45459a8f628c846795632535598dd05794ce7fae"')) {
   throw new Error("terminal Kit must be pinned to the distinct tracking-mode revision");
+}
+for (const target of ["aarch64-apple-darwin", "x86_64-apple-darwin"]) {
+  const section = `[target.${target}]`;
+  const start = cargoConfig.indexOf(section);
+  const next = cargoConfig.indexOf("[target.", start + section.length);
+  const body = cargoConfig.slice(start, next < 0 ? undefined : next);
+  if (start < 0 || !body.includes('link-arg=-Wl,-no_uuid')) {
+    throw new Error(`Darwin release must suppress the nondeterministic Mach-O UUID: ${target}`);
+  }
 }
 
 if (dependencyDocument.schema !== "soksak-build-dependencies-v1" || dependencyDocument.dependencies.length !== 1 ||
