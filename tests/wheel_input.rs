@@ -57,6 +57,17 @@ fn live_encoder_owns_legacy_utf8_and_urxvt_wheel_protocols() {
         TerminalEngine::wheel_input(&mut engine, legacy).unwrap(),
         [0x1b, b'[', b'M', 124, 34, 35],
     );
+    assert_eq!(
+        TerminalEngine::wheel_input(
+            &mut engine,
+            wheel(-2, 1, EngineWheelRoute::MouseReport),
+        )
+        .unwrap(),
+        [
+            0x1b, b'[', b'M', 97, 34, 35, 0x1b, b'[', b'M', 98, 34, 35, 0x1b, b'[', b'M',
+            98, 34, 35,
+        ],
+    );
 
     engine.feed(b"\x1b[?1005h");
     let mut utf8 = wheel(0, -1, EngineWheelRoute::MouseReport);
@@ -65,12 +76,23 @@ fn live_encoder_owns_legacy_utf8_and_urxvt_wheel_protocols() {
         TerminalEngine::wheel_input(&mut engine, utf8).unwrap(),
         [0x1b, b'[', b'M', 96, 0xc2, 0x85, 35],
     );
+    let mut utf8_right = wheel(1, 0, EngineWheelRoute::MouseReport);
+    utf8_right.col = 100;
+    assert_eq!(
+        TerminalEngine::wheel_input(&mut engine, utf8_right).unwrap(),
+        [0x1b, b'[', b'M', 99, 0xc2, 0x85, 35],
+    );
 
     engine.feed(b"\x1b[?1005l\x1b[?1015h");
     assert_eq!(
         TerminalEngine::wheel_input(&mut engine, wheel(0, -1, EngineWheelRoute::MouseReport))
             .unwrap(),
         b"\x1b[96;2;3M",
+    );
+    assert_eq!(
+        TerminalEngine::wheel_input(&mut engine, wheel(2, 1, EngineWheelRoute::MouseReport))
+            .unwrap(),
+        b"\x1b[97;2;3M\x1b[99;2;3M\x1b[99;2;3M",
     );
 }
 
