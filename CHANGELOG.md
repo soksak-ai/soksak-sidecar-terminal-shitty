@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.36
+
+- Suppress the nondeterministic Mach-O UUID in both Darwin release targets so independent clean
+  builds produce one binary and release identity.
+
 ## 0.0.35
 
 - Encode wheel mouse reports with the provider's distinct live legacy, X10, highlight, UTF-8, SGR,
