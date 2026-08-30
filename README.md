@@ -3,7 +3,7 @@
 Shitty terminal-state provider for `soksak-spec-sidecar-terminal` 0.0.2. The repository contains
 only the Shitty engine adapter, provider identity, and conformance seat. Recovery lifecycle, PTY
 observation, alt-screen preservation and restore serialization are provided by
-`soksak-kit-sidecar-terminal` 0.0.30.
+`soksak-kit-sidecar-terminal` 0.0.33.
 
 The build dependency is declared once in `build-dependencies.json`. That manifest names the
 source repository and pins one exact commit, the Python, LLVM and Ragel versions, and the SDK

@@ -20,12 +20,14 @@ engine's live normal/application cursor encoding. This route follows the engine'
 and does not add modifier bytes. If those live facts change after the common Kit selected the
 route, the adapter refuses the stale route instead of reinterpreting it.
 
-Two engine facts are deliberately not aliased. DEC 9 X10 tracking and DEC 1001 highlight tracking
-have no distinct fields in the current public terminal-mode snapshot, so the common Kit cannot yet
-select a mouse-report wheel route for them. The ignored
-`red_x10_and_highlight_modes_can_generate_a_mouse_report_route` test names that contract gap. The
-engine also supports pixel-coordinate SGR reports, but `EngineWheelInput` supplies cell coordinates;
-this adapter therefore makes no pixel-coordinate wheel claim.
+DEC 9 X10 tracking and DEC 1001 highlight tracking remain distinct live engine facts; neither is
+aliased to another mouse mode. Both select the mouse-report wheel route. X10 modifier suppression
+is applied inside the provider encoder, while highlight tracking retains the ordinary legacy
+modifier rules. The normally executed
+`red_x10_and_highlight_modes_can_generate_a_mouse_report_route` regression test preserves the
+original contract-gap criterion. The engine also supports pixel-coordinate SGR reports, but
+`EngineWheelInput` supplies cell coordinates; this adapter therefore makes no pixel-coordinate
+wheel claim.
 
 ## 한국어
 
@@ -44,8 +46,10 @@ Shift/Alt/Control modifier 규칙을 적용한다. 반복 입력은 정수 스�
 된다. 이 경로는 엔진의 wheel 동작과 동일하게 modifier byte를 추가하지 않는다. 공통 Kit이 경로를
 정한 뒤 이 상태가 바뀌면 다른 경로로 재해석하지 않고 stale route를 거부한다.
 
-두 엔진 상태는 의도적으로 alias하지 않는다. DEC 9 X10 tracking과 DEC 1001 highlight tracking은
-현재 공개 터미널 모드 snapshot에 별도 필드가 없어 공통 Kit이 마우스 리포트 wheel 경로를 선택할
-수 없다. 무시된 `red_x10_and_highlight_modes_can_generate_a_mouse_report_route` 테스트가 이 계약
-공백을 이름으로 남긴다. 엔진은 pixel-coordinate SGR report도 지원하지만 `EngineWheelInput`은 셀
-좌표만 제공하므로, 이 adapter는 pixel-coordinate wheel 지원을 주장하지 않는다.
+DEC 9 X10 tracking과 DEC 1001 highlight tracking은 서로 다른 live engine 상태로 유지하며 다른
+마우스 모드로 alias하지 않는다. 두 상태 모두 마우스 리포트 wheel 경로를 선택한다. X10 modifier
+제거는 provider encoder 안에서 적용하고 highlight tracking은 일반 legacy modifier 규칙을 유지한다.
+일반 테스트로 실행되는 `red_x10_and_highlight_modes_can_generate_a_mouse_report_route`가 최초 계약
+공백의 기준을 회귀 테스트로 보존한다. 엔진은 pixel-coordinate SGR report도 지원하지만
+`EngineWheelInput`은 셀 좌표만 제공하므로, 이 adapter는 pixel-coordinate wheel 지원을 주장하지
+않는다.
