@@ -34,8 +34,8 @@ for (const copiedEncodingRule of ["MODE_SGR_MOUSE", "MODE_UTF8_MOUSE", "1005", "
     throw new Error(`wheel input copies a provider encoding rule: ${copiedEncodingRule}`);
   }
 }
-if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "45459a8f628c846795632535598dd05794ce7fae"')) {
-  throw new Error("terminal Kit must be pinned to the distinct tracking-mode revision");
+if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "20fb2d73d13e5bcde592380d3052c5d2204a592f"')) {
+  throw new Error("terminal Kit must be pinned to the final attested tracking-mode release");
 }
 for (const target of ["aarch64-apple-darwin", "x86_64-apple-darwin"]) {
   const section = `[target.${target}]`;
