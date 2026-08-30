@@ -1,6 +1,6 @@
 [package]
 name = "soksak-sidecar-terminal-shitty"
-version = "0.0.32"
+version = "0.0.33"
 edition = "2024"
 publish = false
 license = "GPL-3.0-or-later"

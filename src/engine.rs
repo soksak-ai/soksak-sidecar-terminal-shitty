@@ -11,6 +11,7 @@ pub use soksak_kit_sidecar_terminal::mirror::{
 
 const SUCCESS: i32 = 0;
 const OUT_OF_SPACE: i32 = -2;
+const NO_VALUE: i32 = 1;
 
 const POINTER_PRESS: i32 = 0;
 const POINTER_RELEASE: i32 = 1;
@@ -131,6 +132,32 @@ unsafe extern "C" {
         codepoints: *mut u32,
         capacity: usize,
         required: *mut usize,
+    ) -> i32;
+    fn soksak_shitty_terminal_selection_start(
+        terminal: *mut c_void,
+        column: u16,
+        logical_row: i32,
+        side: i32,
+        kind: i32,
+    ) -> i32;
+    fn soksak_shitty_terminal_selection_update(
+        terminal: *mut c_void,
+        column: u16,
+        logical_row: i32,
+        side: i32,
+    ) -> i32;
+    fn soksak_shitty_terminal_selection_clear(terminal: *mut c_void) -> i32;
+    fn soksak_shitty_terminal_selection_text(
+        terminal: *mut c_void,
+        output: *mut u8,
+        capacity: usize,
+        required: *mut usize,
+    ) -> i32;
+    fn soksak_shitty_terminal_selection_range(
+        terminal: *const c_void,
+        logical_row: i32,
+        start: *mut u16,
+        end: *mut u16,
     ) -> i32;
 }
 
@@ -335,6 +362,118 @@ impl Engine {
         Ok(output)
     }
 
+    pub fn selection_begin(
+        &mut self,
+        kind: SelectionKind,
+        point: EngineSelectionPoint,
+        _modifiers: SelectionModifiers,
+    ) -> Result<(), String> {
+        let kind = match kind {
+            SelectionKind::Simple => 0,
+            SelectionKind::Semantic => 1,
+            SelectionKind::Line => 2,
+            SelectionKind::Block => 3,
+            SelectionKind::Extend => 4,
+        };
+        let side = match point.side {
+            soksak_kit_sidecar_terminal::mirror::CellSide::Left => 0,
+            soksak_kit_sidecar_terminal::mirror::CellSide::Right => 1,
+        };
+        let result = unsafe {
+            soksak_shitty_terminal_selection_start(
+                self.terminal.as_ptr(),
+                point.col,
+                point.line,
+                side,
+                kind,
+            )
+        };
+        if result == SUCCESS {
+            Ok(())
+        } else {
+            Err(format!("Shitty selection start failed: {result}"))
+        }
+    }
+
+    pub fn selection_update(
+        &mut self,
+        point: EngineSelectionPoint,
+        _modifiers: SelectionModifiers,
+    ) -> Result<(), String> {
+        let side = match point.side {
+            soksak_kit_sidecar_terminal::mirror::CellSide::Left => 0,
+            soksak_kit_sidecar_terminal::mirror::CellSide::Right => 1,
+        };
+        let result = unsafe {
+            soksak_shitty_terminal_selection_update(
+                self.terminal.as_ptr(),
+                point.col,
+                point.line,
+                side,
+            )
+        };
+        if result == SUCCESS {
+            Ok(())
+        } else {
+            Err(format!("Shitty selection update failed: {result}"))
+        }
+    }
+
+    pub fn selection_clear(&mut self) {
+        assert_eq!(
+            unsafe { soksak_shitty_terminal_selection_clear(self.terminal.as_ptr()) },
+            SUCCESS,
+        );
+    }
+
+    pub fn selection_text(&self) -> Option<String> {
+        let mut required = 0usize;
+        let first = unsafe {
+            soksak_shitty_terminal_selection_text(
+                self.terminal.as_ptr(),
+                std::ptr::null_mut(),
+                0,
+                &mut required,
+            )
+        };
+        if first == NO_VALUE {
+            return None;
+        }
+        if first != SUCCESS && first != OUT_OF_SPACE {
+            return None;
+        }
+        let mut output = vec![0u8; required];
+        if required != 0 {
+            let result = unsafe {
+                soksak_shitty_terminal_selection_text(
+                    self.terminal.as_ptr(),
+                    output.as_mut_ptr(),
+                    output.len(),
+                    &mut required,
+                )
+            };
+            if result != SUCCESS {
+                return None;
+            }
+        }
+        output.truncate(required);
+        String::from_utf8(output).ok()
+    }
+
+    pub fn selection_range(&self, line: i32) -> Option<(u16, u16)> {
+        let mut start = 0u16;
+        let mut end = 0u16;
+        let result = unsafe {
+            soksak_shitty_terminal_selection_range(
+                self.terminal.as_ptr(),
+                line,
+                &mut start,
+                &mut end,
+            )
+        };
+        (result == SUCCESS).then_some((start, end))
+    }
+
     fn cell(&self, line: i32, column: u16) -> GridCell {
         let mut cell = FfiCell::default();
         let mut required = 0;
@@ -444,25 +583,27 @@ impl TerminalEngine for Engine {
     }
     fn selection_begin(
         &mut self,
-        _kind: SelectionKind,
-        _point: EngineSelectionPoint,
-        _modifiers: SelectionModifiers,
+        kind: SelectionKind,
+        point: EngineSelectionPoint,
+        modifiers: SelectionModifiers,
     ) -> Result<(), String> {
-        Err("Shitty selection input is not implemented".into())
+        Engine::selection_begin(self, kind, point, modifiers)
     }
     fn selection_update(
         &mut self,
-        _point: EngineSelectionPoint,
-        _modifiers: SelectionModifiers,
+        point: EngineSelectionPoint,
+        modifiers: SelectionModifiers,
     ) -> Result<(), String> {
-        Err("Shitty selection input is not implemented".into())
+        Engine::selection_update(self, point, modifiers)
     }
-    fn selection_clear(&mut self) {}
+    fn selection_clear(&mut self) {
+        Engine::selection_clear(self)
+    }
     fn selection_text(&self) -> Option<String> {
-        None
+        Engine::selection_text(self)
     }
-    fn selection_range(&self, _line: i32) -> Option<(u16, u16)> {
-        None
+    fn selection_range(&self, line: i32) -> Option<(u16, u16)> {
+        Engine::selection_range(self, line)
     }
     fn wheel_input(&mut self, _input: EngineWheelInput) -> Result<Vec<u8>, String> {
         Err("Shitty wheel input is not implemented".into())

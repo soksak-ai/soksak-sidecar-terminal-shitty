@@ -10,10 +10,17 @@ const build = read("build.rs");
 const prepare = read("scripts/prepare-shitty-sdk.sh");
 const preflight = read("scripts/check-build-environment.sh");
 const cargo = read("Cargo.toml");
+const engine = read("src/engine.rs");
 const keys = (value) => Object.keys(value).sort().join("\n");
 
-if (dependency?.commit !== "dbc42af98907fadd5b057d2922b890b2725c016c") {
-  throw new Error("Shitty SDK must be pinned to the live mouse encoder revision");
+for (const symbol of [
+  "soksak_shitty_terminal_pointer",
+  "soksak_shitty_terminal_selection_start",
+  "soksak_shitty_terminal_selection_update",
+  "soksak_shitty_terminal_selection_text",
+  "soksak_shitty_terminal_selection_range",
+]) {
+  if (!engine.includes(symbol)) throw new Error(`Shitty provider API is not consumed: ${symbol}`);
 }
 if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "f485b36e6bdd3dad301af3918c631e18d0264de2"')) {
   throw new Error("terminal Kit must be pinned to the focus-presentation revision");
