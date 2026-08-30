@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.37
+
+- Consume the final owner-attested terminal Kit 0.0.34 release commit without changing the native
+  engine routing rules.
+
 ## 0.0.36
 
 - Suppress the nondeterministic Mach-O UUID in both Darwin release targets so independent clean
