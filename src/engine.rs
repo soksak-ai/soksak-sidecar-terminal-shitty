@@ -3,10 +3,10 @@ use std::ptr::NonNull;
 
 use soksak_kit_sidecar_terminal::mirror::TerminalEngine;
 pub use soksak_kit_sidecar_terminal::mirror::{
-    EnginePointerInput, EngineSelectionPoint, EngineWheelInput, SelectionKind, SelectionModifiers,
-    TerminalCell as GridCell, TerminalColor as ColorSnap, TerminalCursorAnimation,
-    TerminalCursorShape, TerminalCursorStyle, TerminalModes as ModeSnap, TerminalRgb,
-    TerminalThemeOverrides,
+    EnginePointerInput, EngineSelectionPoint, EngineWheelInput, EngineWheelRoute, SelectionKind,
+    SelectionModifiers, TerminalCell as GridCell, TerminalColor as ColorSnap,
+    TerminalCursorAnimation, TerminalCursorShape, TerminalCursorStyle, TerminalModes as ModeSnap,
+    TerminalRgb, TerminalThemeOverrides,
 };
 
 const SUCCESS: i32 = 0;
@@ -298,26 +298,22 @@ impl Engine {
             .collect()
     }
 
-    pub fn pointer_input(&mut self, input: EnginePointerInput) -> Result<Vec<u8>, String> {
-        let event = match input.phase {
-            soksak_kit_sidecar_terminal::mirror::PointerPhase::Down => POINTER_PRESS,
-            soksak_kit_sidecar_terminal::mirror::PointerPhase::Up => POINTER_RELEASE,
-            soksak_kit_sidecar_terminal::mirror::PointerPhase::Move => POINTER_MOTION,
-        };
-        let button = match input.button {
-            soksak_kit_sidecar_terminal::mirror::PointerButton::None => 0,
-            soksak_kit_sidecar_terminal::mirror::PointerButton::Left => 1,
-            soksak_kit_sidecar_terminal::mirror::PointerButton::Middle => 2,
-            soksak_kit_sidecar_terminal::mirror::PointerButton::Right => 3,
-        };
+    fn native_mouse_input(
+        &self,
+        column: u16,
+        row: u16,
+        event: i32,
+        button: i32,
+        input_modifiers: SelectionModifiers,
+    ) -> Result<Vec<u8>, String> {
         let mut modifiers = 0u32;
-        if input.modifiers.shift {
+        if input_modifiers.shift {
             modifiers |= MOUSE_MODIFIER_SHIFT;
         }
-        if input.modifiers.alt {
+        if input_modifiers.alt {
             modifiers |= MOUSE_MODIFIER_ALT;
         }
-        if input.modifiers.control {
+        if input_modifiers.control {
             modifiers |= MOUSE_MODIFIER_CONTROL;
         }
 
@@ -325,8 +321,8 @@ impl Engine {
         let first = unsafe {
             soksak_shitty_terminal_pointer(
                 self.terminal.as_ptr(),
-                input.col,
-                input.row,
+                column,
+                row,
                 event,
                 button,
                 modifiers,
@@ -345,8 +341,8 @@ impl Engine {
         let result = unsafe {
             soksak_shitty_terminal_pointer(
                 self.terminal.as_ptr(),
-                input.col,
-                input.row,
+                column,
+                row,
                 event,
                 button,
                 modifiers,
@@ -360,6 +356,99 @@ impl Engine {
         }
         output.truncate(required);
         Ok(output)
+    }
+
+    /// Encode only the two PTY routes selected by the common terminal Kit. Device-unit
+    /// accumulation and ordinary scrollback stay outside this provider boundary. Mouse reports
+    /// pass buttons 4-7 through the live engine encoder; an outdated route is refused after a
+    /// fresh mode snapshot instead of being reinterpreted as another route.
+    pub fn wheel_input(&mut self, input: EngineWheelInput) -> Result<Vec<u8>, String> {
+        let snapshot = self.snapshot();
+        let mouse_reporting =
+            snapshot.modes & (MODE_MOUSE_CLICK | MODE_MOUSE_DRAG | MODE_MOUSE_MOTION) != 0;
+
+        match input.route {
+            EngineWheelRoute::MouseReport => {
+                if !mouse_reporting {
+                    return Err("WHEEL_MODE_CHANGED: mouse reporting is not active".into());
+                }
+
+                let mut output = Vec::new();
+                let mut append = |button: i32, count: u32| -> Result<(), String> {
+                    for _ in 0..count {
+                        let report = self.native_mouse_input(
+                            input.col,
+                            input.row,
+                            POINTER_PRESS,
+                            button,
+                            input.modifiers,
+                        )?;
+                        if report.is_empty() {
+                            return Err(
+                                "WHEEL_ENCODER_REFUSED: live mouse encoder returned no report"
+                                    .into(),
+                            );
+                        }
+                        output.extend(report);
+                    }
+                    Ok(())
+                };
+
+                append(
+                    if input.vertical < 0 { 4 } else { 5 },
+                    input.vertical.unsigned_abs(),
+                )?;
+                append(
+                    if input.horizontal < 0 { 6 } else { 7 },
+                    input.horizontal.unsigned_abs(),
+                )?;
+                Ok(output)
+            }
+            EngineWheelRoute::AlternateScroll => {
+                if snapshot.modes & MODE_ALTERNATE_SCREEN == 0
+                    || snapshot.modes & MODE_ALTERNATE_SCROLL == 0
+                    || mouse_reporting
+                {
+                    return Err("WHEEL_MODE_CHANGED: alternate scroll is not active".into());
+                }
+
+                let prefix = if snapshot.modes & MODE_APPLICATION_CURSOR != 0 {
+                    [0x1b, b'O']
+                } else {
+                    [0x1b, b'[']
+                };
+                let mut output = Vec::new();
+                let mut append = |direction: u8, count: u32| {
+                    for _ in 0..count {
+                        output.extend_from_slice(&[prefix[0], prefix[1], direction]);
+                    }
+                };
+                append(
+                    if input.vertical < 0 { b'A' } else { b'B' },
+                    input.vertical.unsigned_abs(),
+                );
+                append(
+                    if input.horizontal < 0 { b'D' } else { b'C' },
+                    input.horizontal.unsigned_abs(),
+                );
+                Ok(output)
+            }
+        }
+    }
+
+    pub fn pointer_input(&mut self, input: EnginePointerInput) -> Result<Vec<u8>, String> {
+        let event = match input.phase {
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Down => POINTER_PRESS,
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Up => POINTER_RELEASE,
+            soksak_kit_sidecar_terminal::mirror::PointerPhase::Move => POINTER_MOTION,
+        };
+        let button = match input.button {
+            soksak_kit_sidecar_terminal::mirror::PointerButton::None => 0,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Left => 1,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Middle => 2,
+            soksak_kit_sidecar_terminal::mirror::PointerButton::Right => 3,
+        };
+        self.native_mouse_input(input.col, input.row, event, button, input.modifiers)
     }
 
     pub fn selection_begin(
@@ -605,8 +694,8 @@ impl TerminalEngine for Engine {
     fn selection_range(&self, line: i32) -> Option<(u16, u16)> {
         Engine::selection_range(self, line)
     }
-    fn wheel_input(&mut self, _input: EngineWheelInput) -> Result<Vec<u8>, String> {
-        Err("Shitty wheel input is not implemented".into())
+    fn wheel_input(&mut self, input: EngineWheelInput) -> Result<Vec<u8>, String> {
+        Engine::wheel_input(self, input)
     }
     fn pointer_input(&mut self, input: EnginePointerInput) -> Result<Vec<u8>, String> {
         Engine::pointer_input(self, input)
