@@ -4,7 +4,7 @@
     {
       "id": "shitty-vt-sdk",
       "repository": "https://github.com/min-median-max/shitty.git",
-      "commit": "f4442501b4d77becb44343db5fc23c932a57b55e",
+      "commit": "47886c7df35693eeedc7b907e546fb8785e88b1c",
       "tools": {
         "llvm": "21.1.8",
         "python": "3.14.2",

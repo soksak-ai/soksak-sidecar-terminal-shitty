@@ -45,6 +45,8 @@ const MODE_SHOW_CURSOR: u32 = 1 << 10;
 const MODE_LINE_WRAP: u32 = 1 << 11;
 const MODE_INSERT: u32 = 1 << 12;
 const MODE_ALTERNATE_SCREEN: u32 = 1 << 13;
+const MODE_MOUSE_X10: u32 = 1 << 14;
+const MODE_MOUSE_HIGHLIGHT: u32 = 1 << 15;
 
 const ATTR_BOLD: u16 = 1 << 0;
 const ATTR_DIM: u16 = 1 << 1;
@@ -114,7 +116,7 @@ unsafe extern "C" {
         overrides: *mut FfiThemeOverrides,
     ) -> i32;
     fn soksak_shitty_terminal_pointer(
-        terminal: *const c_void,
+        terminal: *mut c_void,
         column: u16,
         row: u16,
         event: i32,
@@ -274,12 +276,17 @@ impl Engine {
     }
 
     pub fn modes(&self) -> ModeSnap {
-        let modes = self.snapshot().modes;
+        Self::modes_from_bits(self.snapshot().modes)
+    }
+
+    fn modes_from_bits(modes: u32) -> ModeSnap {
         ModeSnap {
             bracketed_paste: modes & MODE_BRACKETED_PASTE != 0,
             app_cursor: modes & MODE_APPLICATION_CURSOR != 0,
             app_keypad: modes & MODE_APPLICATION_KEYPAD != 0,
+            mouse_x10: modes & MODE_MOUSE_X10 != 0,
             mouse_click: modes & MODE_MOUSE_CLICK != 0,
+            mouse_highlight: modes & MODE_MOUSE_HIGHLIGHT != 0,
             mouse_drag: modes & MODE_MOUSE_DRAG != 0,
             mouse_motion: modes & MODE_MOUSE_MOTION != 0,
             sgr_mouse: modes & MODE_SGR_MOUSE != 0,
@@ -364,8 +371,8 @@ impl Engine {
     /// fresh mode snapshot instead of being reinterpreted as another route.
     pub fn wheel_input(&mut self, input: EngineWheelInput) -> Result<Vec<u8>, String> {
         let snapshot = self.snapshot();
-        let mouse_reporting =
-            snapshot.modes & (MODE_MOUSE_CLICK | MODE_MOUSE_DRAG | MODE_MOUSE_MOTION) != 0;
+        let modes = Self::modes_from_bits(snapshot.modes);
+        let mouse_reporting = modes.mouse_reporting();
 
         match input.route {
             EngineWheelRoute::MouseReport => {
@@ -406,13 +413,13 @@ impl Engine {
             }
             EngineWheelRoute::AlternateScroll => {
                 if snapshot.modes & MODE_ALTERNATE_SCREEN == 0
-                    || snapshot.modes & MODE_ALTERNATE_SCROLL == 0
+                    || !modes.alternate_scroll
                     || mouse_reporting
                 {
                     return Err("WHEEL_MODE_CHANGED: alternate scroll is not active".into());
                 }
 
-                let prefix = if snapshot.modes & MODE_APPLICATION_CURSOR != 0 {
+                let prefix = if modes.app_cursor {
                     [0x1b, b'O']
                 } else {
                     [0x1b, b'[']
