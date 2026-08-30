@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.35
+
+- Encode wheel mouse reports with the provider's distinct live legacy, X10, highlight, UTF-8, SGR,
+  and URXVT rules, including both axes, repetition, position, and supported modifiers.
+- Apply X10 modifier suppression at the provider boundary without aliasing DEC 9 or DEC 1001.
+- Emit DEC 1007 alternate-screen wheel input with the live normal/application cursor encoding.
+- Refuse stale engine routes while leaving ordinary scrollback under common Kit ownership.
+
 ## 0.0.30
 
 - Route pointer press, motion, and release through the Shitty engine's live mouse encoder.
