@@ -22,6 +22,17 @@ for (const symbol of [
 ]) {
   if (!engine.includes(symbol)) throw new Error(`Shitty provider API is not consumed: ${symbol}`);
 }
+const wheelStart = engine.indexOf("pub fn wheel_input");
+const pointerStart = engine.indexOf("pub fn pointer_input", wheelStart);
+const wheel = engine.slice(wheelStart, pointerStart);
+if (wheelStart < 0 || pointerStart < 0 || !wheel.includes("self.native_mouse_input(")) {
+  throw new Error("wheel mouse reports must use the live provider encoder");
+}
+for (const copiedEncodingRule of ["MODE_SGR_MOUSE", "MODE_UTF8_MOUSE", "1005", "1006", "1015"]) {
+  if (wheel.includes(copiedEncodingRule)) {
+    throw new Error(`wheel input copies a provider encoding rule: ${copiedEncodingRule}`);
+  }
+}
 if (!cargo.includes('soksak-kit-sidecar-terminal = { git = "https://github.com/soksak-ai/soksak-kit-sidecar-terminal", rev = "f485b36e6bdd3dad301af3918c631e18d0264de2"')) {
   throw new Error("terminal Kit must be pinned to the focus-presentation revision");
 }
