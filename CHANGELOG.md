@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.40
+
+- Derive the Actions Node runtime from the verified SDK package metadata.
+
 ## 0.0.39
 
 - Use the exact SDK 0.0.20 release closure for both local and public owner proofs.
