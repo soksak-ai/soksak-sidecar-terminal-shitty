@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.41
+
+- Allocate a new immutable version after terminal kit integration changes.
+
 ## 0.0.40
 
 - Derive the Actions Node runtime from the verified SDK package metadata.
