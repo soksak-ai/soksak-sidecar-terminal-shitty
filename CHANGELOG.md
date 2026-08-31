@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.38
+
+- Assign the rewritten source commit a new immutable release identity; 0.0.37 remains bound to its
+  original source commit and bytes.
+
 ## 0.0.37
 
 - Consume the final owner-attested terminal Kit 0.0.34 release commit without changing the native
