@@ -15,8 +15,9 @@ if (!/^STAGE \?= dist$/m.test(makefile) || /^OUT \?= dist$/m.test(makefile)) thr
 for (const value of ["command -v soksak-sdk", "SDK_VERSION", "soksak-sdk pack-target", "soksak-sdk package", "soksak-sdk attest"]) if (!makefile.includes(value)) throw new Error(`Makefile release boundary is missing: ${value}`);
 if (!fs.readFileSync("README.md", "utf8").includes("make attest TARGET=") || !fs.readFileSync("README.md", "utf8").includes("OUT=/absolute/")) throw new Error("README must document owner attestation");
 const required = [
-  "spec_url:", "spec_sha256:", "${{ inputs.spec_url }}", "${{ inputs.spec_sha256 }}",
-  "node-version-file: soksak-sidecars/soksak-sidecar-terminal-shitty/.dependency/spec-package/package.json",
+  "sdk_archive_url:", "sdk_archive_sha256:", "sdk_release_url:", "sdk_release_sha256:",
+  "${{ inputs.sdk_archive_url }}", "${{ inputs.sdk_release_url }}", "$RUNNER_TEMP/soksak-sdk",
+  "node-version-file: ${{ runner.temp }}/soksak-sdk/package.json", "soksak-sdk prepare",
   "python-version: ${{ steps.dependency-tools.outputs.python }}",
   'formula="llvm@${llvm%%.*}"', 'echo "$tool_root" >> "$GITHUB_PATH"',
   'make verify TARGET="${{ matrix.target }}" OUT=dist',
@@ -28,6 +29,7 @@ const required = [
   "SOKSAK_RELEASE_TOKEN: ${{ steps.release-token.outputs.token }}",
 ];
 for (const value of required) if (!workflow.includes(value)) throw new Error(`release workflow omits ${value}`);
+for (const obsolete of ["spec_url:", "spec_sha256:", ".dependency/spec-package"]) if (workflow.includes(obsolete)) throw new Error(`release workflow retains obsolete tooling: ${obsolete}`);
 for (const { target, runner } of targets) {
   if (!workflow.includes(`target: ${target}`) || !workflow.includes(`runner: ${runner}`)) throw new Error(`release matrix omits ${target}/${runner}`);
 }
