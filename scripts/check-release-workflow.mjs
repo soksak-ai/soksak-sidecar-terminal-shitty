@@ -17,7 +17,7 @@ if (!fs.readFileSync("README.md", "utf8").includes("make attest TARGET=") || !fs
 const required = [
   "sdk_archive_url:", "sdk_archive_sha256:", "sdk_release_url:", "sdk_release_sha256:",
   "${{ inputs.sdk_archive_url }}", "${{ inputs.sdk_release_url }}", "$RUNNER_TEMP/soksak-sdk",
-  "node-version-file: ${{ runner.temp }}/soksak-sdk/package.json", "soksak-sdk prepare",
+  "id: tooling", "node-version: ${{ steps.tooling.outputs.node }}", "soksak-sdk prepare",
   "python-version: ${{ steps.dependency-tools.outputs.python }}",
   'formula="llvm@${llvm%%.*}"', 'echo "$tool_root" >> "$GITHUB_PATH"',
   'make verify TARGET="${{ matrix.target }}" OUT=dist',
