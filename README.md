@@ -21,7 +21,7 @@ make attest TARGET=aarch64-apple-darwin OUT=/absolute/shitty-release
 `Cargo.lock`. Normal build and verification remain `--locked`.
 
 Make addresses repository-owned SDK state by the SHA-256 of `build-dependencies.json`, resolves the
-manifest, checks out the exact fork commit,
+manifest, checks out the exact declared SDK commit,
 derives `SOURCE_DATE_EPOCH` from that commit, builds the SDK twice in independent roots and different
 timezones, requires byte-identical output, creates the canonical tree receipt and then builds the
 Rust Sidecar from that receipt. `build.rs` accepts no raw SDK path. No source checkout path is
@@ -40,7 +40,7 @@ Cursor shape, DECSCUSR blink state, and the provider animation interval come fro
 snapshot ABI. The adapter does not parse terminal input to reconstruct them. DECTCEM remains the
 separate visibility mode.
 
-The maintained Vterm fork owns OSC 4/10/11/12 state and exposes exact override-presence flags and
+The maintained Vterm SDK owns OSC 4/10/11/12 state and exposes exact override-presence flags and
 a 256-entry palette mask through its C snapshot ABI. The Rust adapter maps that snapshot to
 `TerminalThemeOverrides`; it does not parse OSC or compare effective colors with defaults. Reset
 clears the matching flag or mask bit so the common renderer reveals the current host base theme.
