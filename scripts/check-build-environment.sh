@@ -9,10 +9,10 @@ build_root=${2:-}
 # toolchain, so this host is asked only for what still has to run: the crate compiler and its runtime.
 sdk=required
 if [ -n "$build_root" ] && [ -f "$build_root/receipts/$target.json" ] && \
-   soksak-validate build-receipt "$build_root/receipts/$target.json" --dependencies build-dependencies.json --output-root "$build_root" >/dev/null 2>&1; then
+   soksak-sdk validate build-receipt "$build_root/receipts/$target.json" --dependencies build-dependencies.json --output-root "$build_root" >/dev/null 2>&1; then
   sdk=reused
 fi
-resolution=$(soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target "$target") || exit 78
+resolution=$(soksak-sdk validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target "$target") || exit 78
 tool() { printf '%s' "$resolution" | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).tools[process.argv[1]]))' "$1"; }
 python_expected=$(tool python)
 llvm_expected=$(tool llvm)

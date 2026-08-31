@@ -9,7 +9,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 build_root=$root/$build_root
 receipt=$build_root/receipts/$target.json
 if [ -f "$receipt" ]; then
-  soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+  soksak-sdk validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
   echo "SHITTY_SDK_REUSED target=$target"
   exit 0
 fi
@@ -17,17 +17,17 @@ if [ -e "$build_root/targets/$target" ]; then
   mkdir -p "$build_root/receipts" "$build_root/.transactions"
   recovered=$build_root/.transactions/recover.$target.$$.json
   trap 'rm -f -- "$recovered"' EXIT HUP INT TERM
-  soksak-validate build-receipt-create "$root/build-dependencies.json" --dependency shitty-vt-sdk \
+  soksak-sdk validate build-receipt-create "$root/build-dependencies.json" --dependency shitty-vt-sdk \
     --target "$target" --output-root "$build_root" --out "$recovered"
-  soksak-validate build-receipt "$recovered" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+  soksak-sdk validate build-receipt "$recovered" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
   if [ -e "$receipt" ]; then
-    soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+    soksak-sdk validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
     echo "SHITTY_SDK_REUSED target=$target"
     exit 0
   fi
   mv "$recovered" "$receipt"
   trap - EXIT HUP INT TERM
-  soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+  soksak-sdk validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
   echo "SHITTY_SDK_RECOVERED target=$target"
   exit 0
 fi
@@ -44,7 +44,7 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$transaction/targets/$target/shitty-vt-sdk"
 resolution=$transaction/resolution.json
-soksak-validate build-dependencies "$root/build-dependencies.json" --dependency shitty-vt-sdk --target "$target" > "$resolution"
+soksak-sdk validate build-dependencies "$root/build-dependencies.json" --dependency shitty-vt-sdk --target "$target" > "$resolution"
 repository=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.repository)' "$resolution")
 commit=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.commit)' "$resolution")
 python_version=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.tools.python)' "$resolution")
@@ -105,12 +105,12 @@ fi
 find "$transaction/targets/$target/shitty-vt-sdk" -type f -exec chmod a-w {} +
 find "$transaction/targets/$target/shitty-vt-sdk" -type d -exec chmod 0555 {} +
 mkdir -p "$transaction/receipts"
-soksak-validate build-receipt-create "$root/build-dependencies.json" --dependency shitty-vt-sdk \
+soksak-sdk validate build-receipt-create "$root/build-dependencies.json" --dependency shitty-vt-sdk \
   --target "$target" --output-root "$transaction" --out "$transaction/receipts/$target.json"
-soksak-validate build-receipt "$transaction/receipts/$target.json" --dependencies "$root/build-dependencies.json" --output-root "$transaction"
+soksak-sdk validate build-receipt "$transaction/receipts/$target.json" --dependencies "$root/build-dependencies.json" --output-root "$transaction"
 mkdir -p "$build_root/targets" "$build_root/receipts"
 [ ! -e "$build_root/targets/$target" ] && [ ! -e "$receipt" ] || { echo "Shitty SDK output appeared concurrently" >&2; exit 79; }
 mv "$transaction/targets/$target" "$build_root/targets/$target"
 mv "$transaction/receipts/$target.json" "$receipt"
-soksak-validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
+soksak-sdk validate build-receipt "$receipt" --dependencies "$root/build-dependencies.json" --output-root "$build_root"
 echo "SHITTY_SDK_READY target=$target"

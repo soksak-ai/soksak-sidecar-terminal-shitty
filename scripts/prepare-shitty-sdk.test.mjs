@@ -21,9 +21,9 @@ test("prepare recovers a committed target whose receipt move was interrupted", (
 
   const bin = join(root, "bin");
   mkdirSync(bin);
-  const validator = join(bin, "soksak-validate");
+  const validator = join(bin, "soksak-sdk");
   writeFileSync(validator, [
-    "#!/bin/sh", "set -eu", "command=$1", "shift",
+    "#!/bin/sh", "set -eu", "test \"$1\" = validate", "shift", "command=$1", "shift",
     "case $command in",
     "  build-receipt-create)",
     "    out=", "    while [ $# -gt 0 ]; do if [ \"$1\" = --out ]; then out=$2; break; fi; shift; done",

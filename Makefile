@@ -3,7 +3,7 @@ SHELL := /bin/sh
 BUILD_DEPENDENCY_DIGEST := $(shell node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync("build-dependencies.json")).digest("hex"))')
 BUILD_DEPENDENCY_ROOT := target/build-dependencies/shitty-vt-sdk/$(BUILD_DEPENDENCY_DIGEST)
 STAGE ?= dist
-SDK_VERSION := 0.0.18
+SDK_VERSION := 0.0.20
 
 .PHONY: require-target require-build-dependency-digest build-dependency-root preflight lock prepare build stage verify benchmark require-tooling require-out release attest
 
@@ -19,7 +19,7 @@ build-dependency-root: require-build-dependency-digest
 
 preflight: require-target require-build-dependency-digest
 	@scripts/check-build-environment.sh '$(TARGET)' '$(BUILD_DEPENDENCY_ROOT)'
-	@soksak-validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target '$(TARGET)' >/dev/null
+	@soksak-sdk validate build-dependencies build-dependencies.json --dependency shitty-vt-sdk --target '$(TARGET)' >/dev/null
 
 lock: preflight
 	@cargo metadata --format-version 1 > /dev/null
@@ -38,7 +38,7 @@ verify: stage
 	@node --test scripts/*.test.mjs
 	@node scripts/check-build-config.mjs
 	@node scripts/check-release-workflow.mjs
-	@soksak-validate build-receipt '$(BUILD_DEPENDENCY_ROOT)/receipts/$(TARGET).json' --dependencies build-dependencies.json --output-root '$(BUILD_DEPENDENCY_ROOT)'
+	@soksak-sdk validate build-receipt '$(BUILD_DEPENDENCY_ROOT)/receipts/$(TARGET).json' --dependencies build-dependencies.json --output-root '$(BUILD_DEPENDENCY_ROOT)'
 	@SOKSAK_BUILD_DEPENDENCY_ROOT='$(CURDIR)/$(BUILD_DEPENDENCY_ROOT)' scripts/gate.sh '$(TARGET)' '$(STAGE)'
 
 benchmark: verify

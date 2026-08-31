@@ -74,7 +74,7 @@ for (const target of ["preflight", "prepare", "build", "stage", "verify"]) {
   if (!new RegExp(`^${target}:`, "m").test(makefile)) throw new Error(`Makefile target is missing: ${target}`);
 }
 if (!prepare.includes("SOURCE_DATE_EPOCH") || !prepare.includes("git -C \"$source\" show -s --format=%ct") ||
-    !prepare.includes("vterm-c-sdk") || !prepare.includes("soksak-validate build-receipt-create") ||
+    !prepare.includes("vterm-c-sdk") || !prepare.includes("soksak-sdk validate build-receipt-create") ||
     !prepare.includes("SHITTY_SDK_RECOVERED") || !prepare.includes('AR="$archiver"') ||
     !preflight.includes('archiver=$(dirname -- "$compiler")/llvm-ar')) {
   throw new Error("Shitty SDK preparation does not own reproducible source build and receipt creation");

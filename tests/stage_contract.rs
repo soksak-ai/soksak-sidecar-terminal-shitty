@@ -21,7 +21,7 @@ fn the_sdk_toolchain_is_demanded_only_when_the_sdk_has_to_be_built() {
     let check = fs::read_to_string(root.join("scripts/check-build-environment.sh"))
         .expect("read environment check");
     assert!(
-        check.contains("soksak-validate build-receipt "),
+        check.contains("soksak-sdk validate build-receipt "),
         "the check does not consult the receipt"
     );
     assert!(
