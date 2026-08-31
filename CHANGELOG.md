@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.39
+
+- Use the exact SDK 0.0.20 release closure for both local and public owner proofs.
+
 ## 0.0.38
 
 - Assign the rewritten source commit a new immutable release identity; 0.0.37 remains bound to its
